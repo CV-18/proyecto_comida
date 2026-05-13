@@ -89,9 +89,30 @@ export class Auth implements OnInit {
       return;
     }
 
-    // Signup — pendiente de completar formulario con campos del backend
-    this.isLoading = false;
-    this.formError = 'El registro estará disponible próximamente.';
+    this.authService.signUp({
+      nombre: this.form.firstName,
+      apellidos: this.form.lastName,
+      username: this.form.username,
+      email: this.form.email,
+      password: this.form.password,
+      passwordConfirm: this.form.confirmPassword,
+      telefono: this.form.phone,
+      direccion: '',
+      codigoPostal: '',
+      ciudad: '',
+      pais: ''
+    }).subscribe({
+      next: (res) => {
+        this.authService.saveToken(res.token);
+        this.userService.login();
+        this.isLoading = false;
+        void this.router.navigateByUrl('/cuenta');
+      },
+      error: () => {
+        this.isLoading = false;
+        this.formError = 'Error al crear la cuenta. Inténtalo de nuevo.';
+      }
+    });
   }
 
   private validateSignup(): string | null {
