@@ -1,0 +1,11 @@
+/* Payment Modal Styles */
+
+input[type="text"]:disabled,
+input[type="radio"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}

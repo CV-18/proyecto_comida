@@ -1,0 +1,92 @@
+@if (cart.isCartOpen()) {
+	<div class="fixed inset-0 z-50">
+		<button type="button" class="absolute inset-0 bg-black/40" (click)="close()" aria-label="Cerrar carrito"></button>
+
+		<aside class="absolute right-0 top-0 h-full w-full sm:w-105 bg-white border-l border-gray-200 shadow-xl p-4 flex flex-col">
+			<div class="flex items-center justify-between border-b border-gray-100 pb-3">
+				<h2 class="font-semibold text-gray-900">{{ 'cart.title' | translate }}</h2>
+				<button type="button" class="text-sm text-gray-500 hover:text-gray-900" (click)="close()">{{ 'nav.close' | translate }}</button>
+			</div>
+
+			<div class="py-4 space-y-3 flex-1 overflow-auto">
+				@if (cart.items().length === 0) {
+					<p class="text-sm text-gray-500">{{ 'cart.empty' | translate }}</p>
+				}
+
+				@for (item of cart.items(); track item.id) {
+						<article class="flex items-center gap-3 bg-white rounded-2xl p-3 shadow-sm">
+							<div class="w-16 h-16 rounded-md bg-gray-100 flex items-center justify-center text-sm text-gray-500 font-semibold">
+								{{ item.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) }}
+							</div>
+							<div class="flex-1">
+								<h3 class="text-sm font-medium text-gray-900">{{ item.name }}</h3>
+								<p class="text-xs text-gray-500">{{ 'cart.price' | translate }}: {{ item.price | currency:translateService.currencyCode }}</p>
+								<div class="mt-2 flex items-center gap-2">
+									<button type="button" class="px-2.5 py-1.5 rounded-md border border-gray-200 text-sm text-gray-700 hover:bg-gray-50" (click)="cart.updateQuantity(item.id, -1)">-</button>
+									<span class="px-3 py-1 rounded-full bg-gray-100 text-sm font-medium">{{ item.quantity }}</span>
+									<button type="button" class="px-2.5 py-1.5 rounded-md border border-gray-200 text-sm text-gray-700 hover:bg-gray-50" (click)="cart.updateQuantity(item.id, 1)">+</button>
+								</div>
+							</div>
+							<div class="flex flex-col items-end gap-2">
+								<button type="button" class="text-xs text-red-500 hover:underline" (click)="cart.removeItem(item.id)">{{ 'cart.remove' | translate }}</button>
+								<span class="text-sm font-semibold text-gray-900">{{ item.price * item.quantity | currency:translateService.currencyCode }}</span>
+							</div>
+						</article>
+				}
+			</div>
+
+			<!-- Error Message -->
+			@if (errorMessage()) {
+				<div class="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
+					<p class="text-sm text-red-700">{{ errorMessage() }}</p>
+				</div>
+			}
+
+			<div class="border-t border-gray-100 pt-4 space-y-3 text-sm">
+				<div class="flex justify-between text-gray-600">
+					<span>{{ 'cart.subtotal' | translate }}</span>
+					<span>{{ cart.subtotal() | currency:translateService.currencyCode }}</span>
+				</div>
+				<div class="flex justify-between text-gray-600">
+					<span>{{ 'cart.discount' | translate }}</span>
+					<span>-{{ cart.discountAmount(userService.isPremium()) | currency:translateService.currencyCode }}</span>
+				</div>
+				@if (cart.items().length > 0) {
+					<div class="flex justify-between items-start text-gray-600">
+						<span>{{ 'cart.shipping' | translate }}</span>
+						<div class="flex flex-col items-end">
+							<span>{{ cart.shippingFee() | currency:translateService.currencyCode }}</span>
+							@if (cart.shippingFee() === 0) {
+								<span class="text-xs text-emerald-600 font-medium">
+									@if (userService.isPremium()) {
+										✓ Premium
+									} @else {
+										✓ Primera compra
+									}
+								</span>
+							}
+						</div>
+					</div>
+				}
+				<div class="flex justify-between items-center font-semibold text-gray-900 pt-1">
+					<span>{{ 'cart.total' | translate }}</span>
+					<span>{{ cart.totalWithDiscount(userService.isPremium()) | currency:translateService.currencyCode }}</span>
+				</div>
+
+				<div class="pt-3">
+				<button
+					type="button"
+					class="w-full px-4 py-3 rounded-full bg-amber-500 text-white font-medium hover:bg-amber-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+					[disabled]="cart.items().length === 0 || isProcessing()"
+					(click)="checkout()">
+					{{ isProcessing() ? 'Procesando...' : ('cart.checkout' | translate) }}
+				</button>
+					<button type="button" class="w-full mt-2 px-4 py-2 rounded-full border border-gray-200 text-sm text-gray-700">{{ 'cart.continue' | translate }}</button>
+				</div>
+			</div>
+		</aside>
+	</div>
+}
+
+<!-- Payment Modal -->
+<app-payment-modal #paymentModal></app-payment-modal>

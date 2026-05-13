@@ -1,0 +1,29 @@
+{
+  "nav": {
+    "home": "Home",
+    "menus": "Menu",
+    "dishes": "Piatti",
+    "subscription": "Abbonamento",
+    "about": "Chi siamo",
+    "cart": "Carrello",
+    "login": "Accedi",
+    "signup": "Registrati",
+    "menu": "Menu",
+    "close": "Chiudi",
+    "profile": "Il mio profilo",
+    "premium": "Premium"
+  },
+  "cart": {
+    "title": "Il tuo carrello",
+    "empty": "Il carrello è vuoto.",
+    "price": "Prezzo",
+    "quantity": "Quantità",
+    "remove": "Rimuovi",
+    "subtotal": "Subtotale",
+    "shipping": "Spedizione",
+    "discount": "Sconto premium",
+    "total": "Totale",
+    "checkout": "Paga ora",
+    "continue": "Continua a comprare"
+  }
+}

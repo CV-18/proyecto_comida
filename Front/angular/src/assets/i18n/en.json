@@ -1,0 +1,29 @@
+{
+  "nav": {
+    "home": "Home",
+    "menus": "Menus",
+    "dishes": "Dishes",
+    "subscription": "Subscription",
+    "about": "About",
+    "cart": "Cart",
+    "login": "Log in",
+    "signup": "Sign up",
+    "menu": "Menu",
+    "close": "Close",
+    "profile": "My profile",
+    "premium": "Premium"
+  },
+  "cart": {
+    "title": "Your cart",
+    "empty": "Your cart is empty.",
+    "price": "Price",
+    "quantity": "Quantity",
+    "remove": "Remove",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "discount": "Premium discount",
+    "total": "Total",
+    "checkout": "Pay now",
+    "continue": "Continue shopping"
+  }
+}

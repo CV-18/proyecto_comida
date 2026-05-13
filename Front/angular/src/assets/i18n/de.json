@@ -1,0 +1,29 @@
+{
+  "nav": {
+    "home": "Startseite",
+    "menus": "Menüs",
+    "dishes": "Gerichte",
+    "subscription": "Abonnement",
+    "about": "Über uns",
+    "cart": "Warenkorb",
+    "login": "Anmelden",
+    "signup": "Registrieren",
+    "menu": "Menü",
+    "close": "Schließen",
+    "profile": "Mein Profil",
+    "premium": "Premium"
+  },
+  "cart": {
+    "title": "Ihr Warenkorb",
+    "empty": "Ihr Warenkorb ist leer.",
+    "price": "Preis",
+    "quantity": "Menge",
+    "remove": "Entfernen",
+    "subtotal": "Zwischensumme",
+    "shipping": "Versand",
+    "discount": "Premium-Rabatt",
+    "total": "Gesamt",
+    "checkout": "Jetzt bezahlen",
+    "continue": "Weiter einkaufen"
+  }
+}
