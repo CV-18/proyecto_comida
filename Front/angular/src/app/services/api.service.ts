@@ -27,11 +27,11 @@ export class ApiService {
     if (category) {
       params = params.set('category', category);
     }
-    return this.http.get<Plato[]>(`${this.baseUrl}/dishes`, { params });
+    return this.http.get<Plato[]>(`${this.baseUrl}/platos`, { params });
   }
 
   getDish(id: string): Observable<Plato> {
-    return this.http.get<Plato>(`${this.baseUrl}/dishes/${id}`);
+    return this.http.get<Plato>(`${this.baseUrl}/platos/${id}`);
   }
 
   // Usuario
