@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 export interface UsuarioResponse {
   id: number;
@@ -17,24 +17,33 @@ export interface UsuarioResponse {
   isSuscriptor: boolean;
 }
 
+export interface UsuarioUpdateRequest {
+  nombre?: string;
+  apellidos?: string;
+  email?: string;
+  telefono?: string;
+  direccion?: string;
+  codigoPostal?: string;
+  ciudad?: string;
+  pais?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class UsuarioService {
-  private readonly API = 'https://proyectocomidadc-gda6.onrender.com/v1/usuarios';
+  private readonly API = `${environment.apiUrl}/v1/usuarios`;
 
-  constructor(
-    private readonly http: HttpClient,
-    private readonly authService: AuthService
-  ) {}
+  constructor(private readonly http: HttpClient) {}
 
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      Authorization: `Bearer ${this.authService.getToken()}`
-    });
+  // El JWT lo añade automáticamente el interceptor — no hace falta HttpHeaders manual
+  getMe(): Observable<UsuarioResponse> {
+    return this.http.get<UsuarioResponse>(`${this.API}/me`);
   }
 
-  getMe(): Observable<UsuarioResponse> {
-    return this.http.get<UsuarioResponse>(`${this.API}/me`, {
-      headers: this.getHeaders()
-    });
+  updateMe(data: UsuarioUpdateRequest): Observable<UsuarioResponse> {
+    return this.http.put<UsuarioResponse>(`${this.API}/me`, data);
+  }
+
+  subscribePremium(): Observable<UsuarioResponse> {
+    return this.http.post<UsuarioResponse>(`${this.API}/me/suscribir`, {});
   }
 }

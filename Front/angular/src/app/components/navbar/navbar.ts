@@ -4,6 +4,7 @@ import { TranslateService } from '../../services/translate.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 import { CartService } from '../../services/cart.service';
 import { UserService } from '../../services/user.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-navbar',
@@ -26,6 +27,7 @@ export class Navbar {
     public cart: CartService,
     public userService: UserService
     , public translateService: TranslateService
+    , public authService: AuthService
   ) {}
 
   getInitials(): string {
