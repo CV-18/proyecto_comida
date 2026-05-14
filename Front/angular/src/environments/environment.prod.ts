@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://your-api-domain.com/api'
+  apiUrl: 'https://proyectocomidadc-1.onrender.com/api'
 };
 
