@@ -16,7 +16,7 @@ export class Auth implements OnInit {
   isLoading = false;
   showPassword = false;
   formError = '';
-  readonly passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+  readonly passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{10,}$/;
 
   form = {
     username: '',
@@ -129,7 +129,7 @@ export class Auth implements OnInit {
     }
 
     if (!this.passwordPattern.test(password)) {
-      return 'La contraseña debe tener al menos 8 caracteres, una letra y un número.';
+      return 'La contraseña debe tener al menos 10 caracteres, una letra y un número.';
     }
 
     if (password !== confirmPassword) {
