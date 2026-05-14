@@ -39,6 +39,20 @@
 			</div>
 		}
 
+		@if (dishService.loading()) {
+			<div class="flex items-center justify-center py-16">
+				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+			</div>
+		} @else if (dishService.error()) {
+			<div class="mb-8 rounded-2xl bg-red-50 border border-red-200 p-5">
+				<p class="text-red-700">{{ dishService.error() }}</p>
+			</div>
+		} @else if (filteredPlatos.length === 0) {
+			<div class="text-center py-16">
+				<p class="text-gray-500">{{ 'platos.noResults' | translate }}</p>
+			</div>
+		}
+
 		<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
 			@for (plato of filteredPlatos; track plato.id) {
 				<article class="rounded-3xl border p-5 transition-shadow hover:shadow-lg"
