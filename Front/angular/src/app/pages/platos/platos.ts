@@ -1,10 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { CartService, type CartItem } from '../../services/cart.service';
+import { CartService } from '../../services/cart.service';
 import { UserService } from '../../services/user.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 import { TranslateService } from '../../services/translate.service';
 import { DishService } from '../../services/dish.service';
+import { type Plato } from '../../types';
 
 @Component({
   selector: 'app-platos',
@@ -50,10 +51,17 @@ export class Platos implements OnInit {
     this.search = input.value;
   }
 
-  addToCart(item: CartItem & { isPremium?: boolean }): void {
-    if (item.isPremium && !this.userService.isPremium()) {
+  addToCart(plato: Plato): void {
+    if (plato.isPremium && !this.userService.isPremium()) {
       return;
     }
-    this.cart.addItem({ ...item, quantity: 1 });
+    this.cart.addItem({
+      id: plato.id,
+      name: plato.name,
+      price: plato.price,
+      image: plato.image,
+      quantity: 1,
+      isPremium: plato.isPremium
+    });
   }
 }
