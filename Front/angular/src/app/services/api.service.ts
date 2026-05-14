@@ -14,7 +14,7 @@ import {
 } from '../types';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ApiService {
   private readonly baseUrl = environment.apiUrl;
@@ -27,7 +27,9 @@ export class ApiService {
     if (category) {
       params = params.set('category', category);
     }
-    return this.http.get<Plato[]>(`${this.baseUrl}/platos`, { params });
+    return this.http.get<any>(`${this.baseUrl}/platos`, { params }).pipe(
+      map((response) => response.content),
+    );
   }
 
   getDish(id: string): Observable<Plato> {
