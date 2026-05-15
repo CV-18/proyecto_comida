@@ -28,7 +28,16 @@ export class Platos {
   activeFilter = 'Todos';
   search = '';
 
-  readonly filters = ['Todos', 'Mexicano', 'Indio', 'Griego', 'Italiano', 'Japones', 'Espanol', 'Premium'];
+  readonly filters = [
+    { value: 'Todos', label: 'Todos' },
+    { value: 'Mexicano', label: 'Mexicano' },
+    { value: 'Indio', label: 'Indio' },
+    { value: 'Griego', label: 'Griego' },
+    { value: 'Italiano', label: 'Italiano' },
+    { value: 'Japones', label: 'Japonés' },
+    { value: 'Espanol', label: 'Español' },
+    { value: 'Premium', label: 'Premium' },
+  ];
 
   platos: PlatosViewItem[] = [];
 
@@ -100,8 +109,8 @@ export class Platos {
     });
   }
 
-  setFilter(filter: string): void {
-    this.activeFilter = filter;
+  setFilter(filter: { value: string; label: string }): void {
+    this.activeFilter = filter.value;
   }
 
   updateSearch(event: Event): void {
