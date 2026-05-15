@@ -13,6 +13,14 @@
 					Volver al inicio
 				</a>
 			</div>
+
+			<div class="flex flex-wrap gap-3">
+				@for (section of sections; track section.id) {
+					<a [routerLink]="['/admin']" [fragment]="section.id" class="inline-flex items-center gap-2 rounded-full border border-orange-100 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 transition hover:bg-orange-100">
+						{{ section.title }}
+					</a>
+				}
+			</div>
 			<div class="grid gap-3 sm:grid-cols-3">
 				<div class="rounded-2xl border border-orange-100 bg-orange-50/70 p-4">
 					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-orange-500">Acceso</p>
@@ -27,14 +35,70 @@
 					<p class="mt-1 text-sm font-semibold text-gray-900">Bearer token obligatorio</p>
 				</div>
 			</div>
+
+			<div class="grid gap-3 md:grid-cols-2">
+				<div class="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Acciones rápidas</p>
+					<div class="mt-3 flex flex-wrap gap-2">
+						<a href="#platos" class="rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white">Nuevo plato</a>
+						<a href="#listado-platos" class="rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white">Editar plato</a>
+						<a href="#menus" class="rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white">Nuevo menú</a>
+					</div>
+				</div>
+				<div class="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Alcance actual</p>
+					<p class="mt-1 text-sm font-semibold text-gray-900">CRUD completo de platos y creación de menús con token del admin</p>
+				</div>
+			</div>
+		</div>
+
+		<div id="listado-platos" class="mb-6 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-lg shadow-gray-900/5">
+			<div class="flex items-center justify-between gap-4">
+				<div>
+					<p class="text-sm font-semibold uppercase tracking-[0.18em] text-orange-500">Listado de platos</p>
+					<h2 class="mt-1 text-2xl font-bold text-gray-950">Editar o borrar platos existentes</h2>
+				</div>
+				<button type="button" (click)="loadPlatos()" class="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Recargar</button>
+			</div>
+
+			@if (platos.length === 0) {
+				<p class="mt-4 text-sm text-gray-500">No hay platos cargados desde el backend.</p>
+			} @else {
+				<div class="mt-5 grid gap-4 lg:grid-cols-2">
+					@for (plato of platos; track plato.id) {
+						<article class="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+							<div class="flex items-start justify-between gap-4">
+								<div>
+									<p class="text-xs font-semibold uppercase tracking-wide text-orange-500">#{{ plato.id }}</p>
+									<h3 class="mt-1 text-lg font-bold text-gray-950">{{ plato.nombre }}</h3>
+									<p class="mt-1 text-sm text-gray-600">{{ plato.descripcion }}</p>
+								</div>
+								<div class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
+									{{ plato.tipo }}
+								</div>
+							</div>
+							<div class="mt-4 flex flex-wrap gap-2 text-xs text-gray-600">
+								<span class="rounded-full bg-white px-3 py-1">{{ plato.categoria }}</span>
+								<span class="rounded-full bg-white px-3 py-1">{{ plato.variante }}</span>
+								<span class="rounded-full bg-white px-3 py-1">Precio: {{ plato.precio }}</span>
+								<span class="rounded-full bg-white px-3 py-1">Cantidad: {{ plato.cantidad }}</span>
+							</div>
+							<div class="mt-4 flex gap-2">
+								<button type="button" class="rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white" (click)="startEditPlato(plato)">Editar</button>
+								<button type="button" class="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700" (click)="deletePlato(plato)">Borrar</button>
+							</div>
+						</article>
+					}
+				</div>
+			}
 		</div>
 
 		<div class="grid gap-6 xl:grid-cols-2">
-			<article class="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-lg shadow-gray-900/5">
+			<article id="platos" class="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-lg shadow-gray-900/5">
 				<div class="mb-6 flex items-center justify-between gap-4">
 					<div>
-						<p class="text-sm font-semibold uppercase tracking-[0.18em] text-orange-500">Nuevo plato</p>
-						<h2 class="mt-1 text-2xl font-bold text-gray-950">Crear plato premium o normal</h2>
+						<p class="text-sm font-semibold uppercase tracking-[0.18em] text-orange-500">{{ editingPlatoId === null ? 'Nuevo plato' : 'Editar plato' }}</p>
+						<h2 class="mt-1 text-2xl font-bold text-gray-950">{{ editingPlatoId === null ? 'Crear plato' : 'Modificar plato' }}</h2>
 					</div>
 					<span class="rounded-full border px-3 py-1 text-xs font-semibold" [class]="badgeClass(platoStatus)">
 						{{ platoStatus === 'idle' ? 'Esperando datos' : platoStatus === 'saving' ? 'Guardando...' : platoStatus === 'success' ? 'Guardado' : 'Error' }}
@@ -44,47 +108,60 @@
 				<form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="savePlato()">
 					<label class="sm:col-span-2">
 						<span class="mb-2 block text-sm font-medium text-gray-700">Nombre</span>
-						<input [(ngModel)]="platoForm.name" name="platoName" type="text" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400" placeholder="Wagyu A5 con trufa" />
+						<input [(ngModel)]="platoForm.nombre" name="platoName" type="text" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400" placeholder="Wagyu A5 con trufa" />
 					</label>
 
 					<label>
-						<span class="mb-2 block text-sm font-medium text-gray-700">Pais / categoria</span>
-						<select [(ngModel)]="platoForm.country" name="platoCountry" class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400">
-							@for (country of countries; track country) {
-								<option [value]="country">{{ country }}</option>
+						<span class="mb-2 block text-sm font-medium text-gray-700">Tipo</span>
+						<select [(ngModel)]="platoForm.tipo" name="platoTipo" class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400">
+							@for (tipo of tipos; track tipo) {
+								<option [value]="tipo">{{ tipo }}</option>
 							}
 						</select>
 					</label>
 
 					<label>
-						<span class="mb-2 block text-sm font-medium text-gray-700">Precio</span>
-						<input [(ngModel)]="platoForm.price" name="platoPrice" type="number" min="0" step="0.01" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400" placeholder="19.95" />
+						<span class="mb-2 block text-sm font-medium text-gray-700">Categoría</span>
+						<select [(ngModel)]="platoForm.categoria" name="platoCategoria" class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400">
+							@for (categoria of categorias; track categoria) {
+								<option [value]="categoria">{{ categoria }}</option>
+							}
+						</select>
 					</label>
 
-					<label class="sm:col-span-2">
-						<span class="mb-2 block text-sm font-medium text-gray-700">Imagen</span>
-						<input [(ngModel)]="platoForm.image" name="platoImage" type="text" class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400" placeholder="https://..." />
+					<label>
+						<span class="mb-2 block text-sm font-medium text-gray-700">Variante</span>
+						<select [(ngModel)]="platoForm.variante" name="platoVariante" class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400">
+							@for (variante of variantes; track variante) {
+								<option [value]="variante">{{ variante }}</option>
+							}
+						</select>
 					</label>
 
 					<label class="sm:col-span-2">
 						<span class="mb-2 block text-sm font-medium text-gray-700">Descripcion</span>
-						<textarea [(ngModel)]="platoForm.description" name="platoDescription" rows="4" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400" placeholder="Describe el plato para la ficha publica"></textarea>
+						<textarea [(ngModel)]="platoForm.descripcion" name="platoDescripcion" rows="4" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400" placeholder="Describe el plato para la ficha publica"></textarea>
 					</label>
 
 					<label>
-						<span class="mb-2 block text-sm font-medium text-gray-700">Rating</span>
-						<input [(ngModel)]="platoForm.rating" name="platoRating" type="number" min="0" max="5" step="0.1" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400" />
+						<span class="mb-2 block text-sm font-medium text-gray-700">Precio</span>
+						<input [(ngModel)]="platoForm.precio" name="platoPrecio" type="number" min="0" step="0.01" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400" placeholder="19.95" />
 					</label>
 
-					<label class="flex items-center gap-3 rounded-2xl border border-gray-200 px-4 py-3 sm:mt-7">
-						<input [(ngModel)]="platoForm.isPremium" name="platoPremium" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400" />
-						<span class="text-sm font-medium text-gray-700">Marcar como premium</span>
+					<label>
+						<span class="mb-2 block text-sm font-medium text-gray-700">Cantidad</span>
+						<input [(ngModel)]="platoForm.cantidad" name="platoCantidad" type="number" min="0" step="1" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400" />
 					</label>
 
 					<div class="sm:col-span-2 flex flex-col gap-3">
 						<button type="submit" class="inline-flex items-center justify-center rounded-full bg-gray-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70">
-							Guardar plato
+							{{ editingPlatoId === null ? 'Guardar plato' : 'Actualizar plato' }}
 						</button>
+						@if (editingPlatoId !== null) {
+							<button type="button" class="inline-flex items-center justify-center rounded-full border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50" (click)="cancelEditPlato()">
+								Cancelar edición
+							</button>
+						}
 						@if (platoMessage) {
 							<p class="rounded-2xl border px-4 py-3 text-sm" [class]="badgeClass(platoStatus)">{{ platoMessage }}</p>
 						}
@@ -92,7 +169,7 @@
 				</form>
 			</article>
 
-			<article class="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-lg shadow-gray-900/5">
+			<article id="menus" class="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-lg shadow-gray-900/5">
 				<div class="mb-6 flex items-center justify-between gap-4">
 					<div>
 						<p class="text-sm font-semibold uppercase tracking-[0.18em] text-orange-500">Nuevo menu</p>
@@ -112,8 +189,8 @@
 					<label>
 						<span class="mb-2 block text-sm font-medium text-gray-700">Categoria</span>
 						<select [(ngModel)]="menuForm.category" name="menuCategory" class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400">
-							@for (country of countries; track country) {
-								<option [value]="country">{{ country }}</option>
+								@for (categoria of categorias; track categoria) {
+									<option [value]="categoria">{{ categoria }}</option>
 							}
 						</select>
 					</label>

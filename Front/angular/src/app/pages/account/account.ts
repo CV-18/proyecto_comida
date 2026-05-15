@@ -7,7 +7,7 @@ import { UsuarioService, UsuarioResponse } from '../../services/usuario.service'
 import { PaymentModal } from '../../components/payment-modal/payment-modal';
 import { PaymentMethod } from '../../models/payment.model';
 
-type AccountTab = 'perfil' | 'pedidos' | 'pagos';
+type AccountTab = 'perfil' | 'pedidos' | 'pagos' | 'admin';
 
 @Component({
   selector: 'app-account',

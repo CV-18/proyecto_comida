@@ -1,6 +1,7 @@
 import { Injectable, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, throwError } from 'rxjs';
 import { MetodoPagoCreateRequest, MetodoPagoUpdateRequest, PaymentMethod } from '../models/payment.model';
+import { AuthService } from './auth.service';
 import { PaymentService } from './payment.service';
 import { UsuarioResponse, UsuarioService } from './usuario.service';
 
@@ -65,8 +66,17 @@ export class UserService {
 
   constructor(
     private readonly paymentService: PaymentService,
-    private readonly usuarioService: UsuarioService
+    private readonly usuarioService: UsuarioService,
+    private readonly authService: AuthService
   ) {}
+
+  isAdminUser(): boolean {
+    return this.authService.isAdmin();
+  }
+
+  canManagePaymentMethods(): boolean {
+    return !this.isAdminUser();
+  }
 
   login(): void {
     this.isLoggedIn.set(true);
@@ -122,6 +132,10 @@ export class UserService {
   }
 
   addPaymentMethod(method: MetodoPagoCreateRequest): Observable<PaymentMethod> {
+    if (this.isAdminUser()) {
+      return throwError(() => new Error('ADMIN_CANNOT_ADD_PAYMENT_METHODS'));
+    }
+
     return this.paymentService.create(method).pipe(
       tap((created) => {
         this.paymentMethods.update((prev) => {
@@ -146,6 +160,10 @@ export class UserService {
   }
 
   updatePaymentMethod(id: number, method: MetodoPagoUpdateRequest): Observable<PaymentMethod> {
+    if (this.isAdminUser()) {
+      return throwError(() => new Error('ADMIN_CANNOT_EDIT_PAYMENT_METHODS'));
+    }
+
     return this.paymentService.update(id, method).pipe(
       tap((updated) => {
         this.paymentMethods.update((prev) => {
@@ -176,6 +194,10 @@ export class UserService {
   }
 
   removePaymentMethod(id: number): void {
+    if (this.isAdminUser()) {
+      return;
+    }
+
     this.paymentService.remove(id).subscribe({
       next: () => this.updateLocalAfterRemove(id),
       error: () => this.updateLocalAfterRemove(id),
@@ -198,6 +220,10 @@ export class UserService {
   }
 
   setDefaultPayment(id: number): void {
+    if (this.isAdminUser()) {
+      return;
+    }
+
     this.paymentService.setDefault(id).subscribe({
       next: () => this.applyLocalDefault(id),
       error: () => this.applyLocalDefault(id),
@@ -218,14 +244,36 @@ export class UserService {
           saldoDisponible: currentById.get(paymentMethod.id)?.saldoDisponible ?? paymentMethod.saldoDisponible ?? 100,
         }));
 
-        this.paymentMethods.set(normalizedList);
-        const def = normalizedList.find((m) => m.isDefault) ?? normalizedList[0];
+        const resolvedList = normalizedList.length > 0 || !this.isAdminUser()
+          ? normalizedList
+          : [this.createAdminPaymentMethod()];
+
+        this.paymentMethods.set(resolvedList);
+        const def = resolvedList.find((m) => m.isDefault) ?? resolvedList[0];
         this.defaultPaymentId.set(def ? def.id : null);
       },
       error: () => {
         // keep in-memory state if fetch fails
+        if (this.isAdminUser() && this.paymentMethods().length === 0) {
+          const adminMethod = this.createAdminPaymentMethod();
+          this.paymentMethods.set([adminMethod]);
+          this.defaultPaymentId.set(adminMethod.id);
+        }
       }
     });
+  }
+
+  private createAdminPaymentMethod(): PaymentMethod {
+    return {
+      id: 0,
+      tipo: 'TARJETA_CREDITO',
+      numeroTarjeta: '0000000000000000',
+      nombreTitular: 'ADMIN',
+      fechaExpiracion: '12/99',
+      cvv: '000',
+      isDefault: true,
+      saldoDisponible: 100000,
+    };
   }
 
   updateUser(data: Partial<UserProfile>): void {

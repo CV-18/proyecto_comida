@@ -3,14 +3,35 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuthService } from './auth.service';
 
+export interface PlatoResponse {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  tipo: 'DESAYUNO' | 'ALMUERZO' | 'MERIENDA' | 'CENA';
+  categoria: 'ENTRANTE' | 'PRINCIPAL' | 'POSTRE';
+  variante: 'ESTANDAR' | 'SIN_GLUTEN' | 'VEGANO' | 'PICANTE' | 'BAJO_CARBOHIDRATO';
+  precio: number;
+  cantidad: number;
+}
+
 export interface PlatoCreateRequest {
-  name: string;
-  country: string;
-  price: number;
-  image?: string;
-  description: string;
-  rating: number;
-  isPremium: boolean;
+  nombre: string;
+  descripcion: string;
+  tipo: PlatoResponse['tipo'];
+  categoria: PlatoResponse['categoria'];
+  variante: PlatoResponse['variante'];
+  precio: number;
+  cantidad: number;
+}
+
+export interface PlatoUpdateRequest {
+  nombre?: string;
+  descripcion?: string;
+  tipo?: PlatoResponse['tipo'];
+  categoria?: PlatoResponse['categoria'];
+  variante?: PlatoResponse['variante'];
+  precio?: number;
+  cantidad?: number;
 }
 
 export interface MenuCreateRequest {
@@ -36,8 +57,26 @@ export class CatalogAdminService {
     });
   }
 
-  createPlato(payload: PlatoCreateRequest): Observable<unknown> {
-    return this.http.post(`${this.API}/platos`, payload, {
+  listPlatos(): Observable<PlatoResponse[]> {
+    return this.http.get<PlatoResponse[]>(`${this.API}/platos`, {
+      headers: this.getHeaders()
+    });
+  }
+
+  createPlato(payload: PlatoCreateRequest): Observable<PlatoResponse> {
+    return this.http.post<PlatoResponse>(`${this.API}/platos`, payload, {
+      headers: this.getHeaders()
+    });
+  }
+
+  updatePlato(id: number, payload: PlatoUpdateRequest): Observable<PlatoResponse> {
+    return this.http.put<PlatoResponse>(`${this.API}/platos/${id}`, payload, {
+      headers: this.getHeaders()
+    });
+  }
+
+  deletePlato(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.API}/platos/${id}`, {
       headers: this.getHeaders()
     });
   }

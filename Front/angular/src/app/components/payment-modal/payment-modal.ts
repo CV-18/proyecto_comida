@@ -37,6 +37,12 @@ export class PaymentModal {
   }
 
   openForCreate(): void {
+    if (!this.userService.canManagePaymentMethods()) {
+      this.errorMessage.set('Los administradores no pueden añadir tarjetas manualmente.');
+      this.isOpen.set(false);
+      return;
+    }
+
     this.editingPaymentId.set(null);
     this.isOpen.set(true);
     this.resetForm();
@@ -76,6 +82,11 @@ export class PaymentModal {
 
   submitPaymentMethod(): void {
     this.errorMessage.set(null);
+
+    if (!this.userService.canManagePaymentMethods()) {
+      this.errorMessage.set('Los administradores no pueden añadir tarjetas manualmente.');
+      return;
+    }
 
     const numeroTarjeta = this.formData.numeroTarjeta.replace(/\s/g, '');
 
