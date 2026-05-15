@@ -45,7 +45,8 @@ export class Account implements OnInit {
           address: usuario.direccion,
           phone: usuario.telefono,
         });
-        this.userService.isPremium.set(usuario.roles?.includes('ROLE_PREMIUM') ?? false);
+        this.userService.isPremium.set(usuario.isSuscriptor ?? false);
+        this.userService.premiumExpira.set(usuario.suscripcionExpira ?? null);
         this.userService.fetchPaymentMethods();
       },
       error: (err) => {

@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { MetodoPagoCreateRequest, MetodoPagoUpdateRequest, PaymentMethod } from '../models/payment.model';
 import { PaymentService } from './payment.service';
-import { UsuarioService } from './usuario.service';
+import { UsuarioResponse, UsuarioService } from './usuario.service';
 
 export interface Order {
   id: string;
@@ -55,6 +55,7 @@ const mockOrders: Order[] = [
 export class UserService {
   readonly isLoggedIn = signal(false);
   readonly isPremium = signal(false);
+  readonly premiumExpira = signal<string | null>(null);
   readonly paymentMethods = signal<PaymentMethod[]>([]);
   readonly orders = signal<Order[]>(mockOrders);
   readonly defaultPaymentId = signal<number | null>(null);
@@ -80,15 +81,17 @@ export class UserService {
   logout(): void {
     this.isLoggedIn.set(false);
     this.isPremium.set(false);
+    this.premiumExpira.set(null);
     // clear sensitive user data
     this.paymentMethods.set([]);
     this.defaultPaymentId.set(null);
   }
 
-  subscribePremium(): Observable<unknown> {
+  subscribePremium(): Observable<UsuarioResponse> {
     return this.usuarioService.subscribePremium().pipe(
       tap((usuario) => {
-        this.isPremium.set(usuario.roles?.includes('ROLE_PREMIUM') ?? true);
+        this.isPremium.set(usuario.isSuscriptor ?? true);
+        this.premiumExpira.set(usuario.suscripcionExpira ?? null);
       }),
       tap({
         error: () => {
@@ -215,18 +218,36 @@ export class UserService {
       return false;
     }
 
-    const currentBalance = paymentMethod.saldoDisponible ?? 100;
-    if (currentBalance < amount) {
+    if (paymentMethod.saldoDisponible < amount) {
       return false;
     }
+
+    const previousBalance = paymentMethod.saldoDisponible;
 
     this.paymentMethods.update((prev) =>
       prev.map((method) =>
         method.id === id
-          ? { ...method, saldoDisponible: currentBalance - amount }
+          ? { ...method, saldoDisponible: method.saldoDisponible - amount }
           : method
       )
     );
+
+    this.usuarioService.cobrarMetodoPago(id, amount).subscribe({
+      next: (res) => {
+        this.paymentMethods.update((prev) =>
+          prev.map((method) =>
+            method.id === id ? { ...method, saldoDisponible: res.saldoDisponible } : method
+          )
+        );
+      },
+      error: () => {
+        this.paymentMethods.update((prev) =>
+          prev.map((method) =>
+            method.id === id ? { ...method, saldoDisponible: previousBalance } : method
+          )
+        );
+      }
+    });
 
     return true;
   }

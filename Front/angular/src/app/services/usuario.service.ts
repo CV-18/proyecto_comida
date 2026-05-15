@@ -14,6 +14,8 @@ export interface UsuarioResponse {
   ciudad: string;
   pais: string;
   roles: string[];
+  isSuscriptor: boolean;
+  suscripcionExpira: string | null;
 }
 
 export interface UsuarioUpdateRequest {
@@ -47,5 +49,12 @@ export class UsuarioService {
 
   subscribePremium(): Observable<UsuarioResponse> {
     return this.http.post<UsuarioResponse>(`${this.API}/me/suscribir`, {});
+  }
+
+  cobrarMetodoPago(id: number, monto: number): Observable<{ saldoDisponible: number }> {
+    return this.http.post<{ saldoDisponible: number }>(
+      `${environment.apiUrl}/v1/metodos-pago/${id}/cobrar`,
+      { monto }
+    );
   }
 }

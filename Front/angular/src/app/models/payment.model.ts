@@ -6,7 +6,7 @@ export interface PaymentMethod {
   numeroTarjeta: string;
   fechaExpiracion: string;
   isDefault: boolean;
-  saldoDisponible?: number;
+  saldoDisponible: number;
 }
 
 export interface MetodoPagoCreateRequest {

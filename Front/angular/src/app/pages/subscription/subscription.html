@@ -81,7 +81,7 @@
 						@if (selectedPayment) {
 							<p class="mt-2 font-semibold text-gray-900">{{ selectedPayment.tipo }} ·•••• {{ selectedPayment.numeroTarjeta.slice(-4) }}</p>
 							<p class="text-sm text-gray-600">Vence {{ selectedPayment.fechaExpiracion }}</p>
-							<p class="mt-2 text-sm text-gray-500">Saldo disponible estimado: {{ translateService.formatCurrency(selectedPayment.saldoDisponible ?? 100) }}</p>
+							<p class="mt-2 text-sm text-gray-500">Saldo disponible estimado: {{ translateService.formatCurrency(selectedPayment.saldoDisponible) }}</p>
 						} @else {
 							<p class="mt-2 text-sm text-gray-500">No hay tarjeta seleccionada.</p>
 						}
