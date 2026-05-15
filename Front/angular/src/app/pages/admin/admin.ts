@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { CatalogAdminService, type MenuCreateRequest, type PlatoCreateRequest, type PlatoResponse, type PlatoUpdateRequest } from '../../services/catalog-admin.service';
+import { CatalogAdminService, type PlatoCreateRequest, type PlatoResponse, type PlatoUpdateRequest } from '../../services/catalog-admin.service';
 import { AuthService } from '../../services/auth.service';
 
 type StatusState = 'idle' | 'saving' | 'success' | 'error';
@@ -14,7 +14,6 @@ type StatusState = 'idle' | 'saving' | 'success' | 'error';
 export class Admin {
   readonly sections = [
     { id: 'platos', title: 'Platos', description: 'Crear, editar y borrar platos' },
-    { id: 'menus', title: 'Menús', description: 'Crear menú para el catálogo' },
   ] as const;
 
   readonly tipos = ['DESAYUNO', 'ALMUERZO', 'MERIENDA', 'CENA'] as const;
@@ -34,18 +33,8 @@ export class Admin {
     cantidad: 1,
   };
 
-  menuForm: MenuCreateRequest = {
-    name: '',
-    category: 'Espanol',
-    price: 0,
-    image: '',
-    description: '',
-  };
-
   platoStatus: StatusState = 'idle';
-  menuStatus: StatusState = 'idle';
   platoMessage = '';
-  menuMessage = '';
 
   constructor(
     private readonly catalogAdminService: CatalogAdminService,
@@ -142,35 +131,6 @@ export class Admin {
       error: () => {
         this.platoStatus = 'error';
         this.platoMessage = 'No se pudo eliminar el plato. Revisa el endpoint o los permisos del backend.';
-      }
-    });
-  }
-
-  saveMenu(): void {
-    this.menuStatus = 'saving';
-    this.menuMessage = '';
-
-    this.catalogAdminService.createMenu({
-      ...this.menuForm,
-      price: Number(this.menuForm.price),
-      image: this.menuForm.image?.trim() ?? '',
-      description: this.menuForm.description.trim(),
-      name: this.menuForm.name.trim(),
-    }).subscribe({
-      next: () => {
-        this.menuStatus = 'success';
-        this.menuMessage = 'El menu se guardo correctamente en la base de datos.';
-        this.menuForm = {
-          name: '',
-          category: 'Espanol',
-          price: 0,
-          image: '',
-          description: '',
-        };
-      },
-      error: () => {
-        this.menuStatus = 'error';
-        this.menuMessage = 'No se pudo guardar el menu. Revisa el endpoint o los permisos del backend.';
       }
     });
   }

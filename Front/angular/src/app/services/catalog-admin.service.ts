@@ -1,7 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { AuthService } from './auth.service';
+
+type PlatoListResponse = PlatoResponse[] | {
+  content?: PlatoResponse[];
+};
 
 export interface PlatoResponse {
   id: number;
@@ -58,9 +62,11 @@ export class CatalogAdminService {
   }
 
   listPlatos(): Observable<PlatoResponse[]> {
-    return this.http.get<PlatoResponse[]>(`${this.API}/platos`, {
+    return this.http.get<PlatoListResponse>(`${this.API}/platos`, {
       headers: this.getHeaders()
-    });
+    }).pipe(
+      map((response) => Array.isArray(response) ? response : response.content ?? [])
+    );
   }
 
   createPlato(payload: PlatoCreateRequest): Observable<PlatoResponse> {

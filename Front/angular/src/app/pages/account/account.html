@@ -243,6 +243,9 @@
 										<div>
 											<p class="font-semibold text-gray-900">{{ card.tipo }} ·•••• {{ card.numeroTarjeta.slice(-4) }}</p>
 											<p class="text-xs text-gray-500">Exp. {{ card.fechaExpiracion }}</p>
+											@if (card.id === userService.defaultPaymentId()) {
+												<span class="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">Predeterminada</span>
+											}
 											@if (!userService.canManagePaymentMethods()) {
 												<p class="text-xs text-amber-700">Saldo administrador: {{ translateService.formatCurrency(card.saldoDisponible) }}</p>
 											}
@@ -266,20 +269,14 @@
 						<div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100">
 							<div class="mb-6">
 								<h1 class="font-heading font-bold text-gray-900 mb-0.5">Panel de administración</h1>
-								<p class="text-gray-500 text-sm">Gestiona platos y menús desde una vista privada exclusiva para administradores.</p>
+								<p class="text-gray-500 text-sm">Gestiona únicamente platos desde una vista privada exclusiva para administradores.</p>
 							</div>
 
 							<div class="grid gap-4 sm:grid-cols-2">
 								<div class="rounded-2xl border border-orange-100 bg-orange-50 p-5">
 									<p class="text-xs font-semibold uppercase tracking-wide text-orange-600">Platos</p>
 									<p class="mt-2 text-sm text-gray-700">Crear, editar o eliminar platos del catálogo público y premium.</p>
-									<a routerLink="/admin" class="mt-4 inline-flex rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white">Ir a gestión de platos</a>
-								</div>
-
-								<div class="rounded-2xl border border-orange-100 bg-orange-50 p-5">
-									<p class="text-xs font-semibold uppercase tracking-wide text-orange-600">Menús</p>
-									<p class="mt-2 text-sm text-gray-700">Crear y mantener menús para el catálogo de la aplicación.</p>
-									<a routerLink="/admin" class="mt-4 inline-flex rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white">Ir a gestión de menús</a>
+									<a routerLink="/admin" class="mt-4 inline-flex rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white">Ir al panel admin</a>
 								</div>
 							</div>
 						</div>

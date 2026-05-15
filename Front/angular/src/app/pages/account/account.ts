@@ -38,6 +38,7 @@ export class Account implements OnInit {
     this.usuarioService.getMe().subscribe({
       next: (usuario) => {
         this.usuario = usuario;
+        this.userService.syncAccessFromUsuario(usuario);
         this.userService.updateUser({
           username: usuario.username,
           name: `${usuario.nombre} ${usuario.apellidos}`.trim(),
@@ -106,6 +107,7 @@ export class Account implements OnInit {
     }).subscribe({
       next: (usuario) => {
         this.usuario = usuario;
+        this.userService.syncAccessFromUsuario(usuario);
         this.userService.updateUser({
           username: usuario.username,
           name: `${usuario.nombre} ${usuario.apellidos}`.trim(),

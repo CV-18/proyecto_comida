@@ -14,8 +14,8 @@
 				<a routerLink="/platos" routerLinkActive="text-orange-600" class="text-sm font-medium text-gray-600 transition-colors hover:text-orange-500">{{ 'nav.dishes' | translate }}</a>
 				<a routerLink="/suscripcion" routerLinkActive="text-orange-600" class="text-sm font-medium text-gray-600 transition-colors hover:text-orange-500">{{ 'nav.subscription' | translate }}</a>
 				<a routerLink="/nosotros" routerLinkActive="text-orange-600" class="text-sm font-medium text-gray-600 transition-colors hover:text-orange-500">{{ 'nav.about' | translate }}</a>
-				@if (authService.isAdmin()) {
-					<a routerLink="/admin" routerLinkActive="text-orange-600" class="text-sm font-semibold text-orange-600 transition-colors hover:text-orange-500">{{ 'nav.admin' | translate }}</a>
+				@if (authService.isAdmin() || userService.isAdminUser()) {
+					<a routerLink="/admin" routerLinkActive="bg-orange-500 text-white shadow-md shadow-orange-500/20" class="rounded-full border border-orange-200 px-4 py-2 text-sm font-semibold text-orange-700 transition-colors hover:bg-orange-500 hover:text-white">Panel admin</a>
 				}
 			</div>
 
@@ -151,8 +151,8 @@
 					<a routerLink="/platos" routerLinkActive="bg-orange-50 text-orange-600" (click)="closeMobileMenu()" class="rounded-xl px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50">{{ 'nav.dishes' | translate }}</a>
 					<a routerLink="/suscripcion" routerLinkActive="bg-orange-50 text-orange-600" (click)="closeMobileMenu()" class="rounded-xl px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50">{{ 'nav.subscription' | translate }}</a>
 					<a routerLink="/nosotros" routerLinkActive="bg-orange-50 text-orange-600" (click)="closeMobileMenu()" class="rounded-xl px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50">{{ 'nav.about' | translate }}</a>
-					@if (authService.isAdmin()) {
-						<a routerLink="/admin" routerLinkActive="bg-orange-50 text-orange-600" (click)="closeMobileMenu()" class="rounded-xl px-4 py-3 text-sm font-semibold text-orange-700 hover:bg-gray-50">{{ 'nav.admin' | translate }}</a>
+					@if (authService.isAdmin() || userService.isAdminUser()) {
+						<a routerLink="/admin" routerLinkActive="bg-orange-500 text-white" (click)="closeMobileMenu()" class="rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-orange-500/20">Panel admin</a>
 					}
 				</div>
 				<div class="mt-4 border-t border-gray-100 px-1 pt-4">

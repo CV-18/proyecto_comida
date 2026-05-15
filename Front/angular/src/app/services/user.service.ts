@@ -57,6 +57,7 @@ export class UserService {
   readonly isLoggedIn = signal(false);
   readonly isPremium = signal(false);
   readonly premiumExpira = signal<string | null>(null);
+  readonly roles = signal<string[]>([]);
   readonly paymentMethods = signal<PaymentMethod[]>([]);
   readonly orders = signal<Order[]>(mockOrders);
   readonly defaultPaymentId = signal<number | null>(null);
@@ -71,7 +72,8 @@ export class UserService {
   ) {}
 
   isAdminUser(): boolean {
-    return this.authService.isAdmin();
+    const user = this.user();
+    return this.roles().includes('ROLE_ADMIN') || this.authService.isAdmin() || user?.username?.toLowerCase() === 'admin';
   }
 
   canManagePaymentMethods(): boolean {
@@ -104,6 +106,7 @@ export class UserService {
     this.isLoggedIn.set(false);
     this.isPremium.set(false);
     this.premiumExpira.set(null);
+    this.roles.set([]);
     // clear sensitive user data
     this.paymentMethods.set([]);
     this.defaultPaymentId.set(null);
@@ -121,10 +124,18 @@ export class UserService {
   refreshUserState(): Observable<UsuarioResponse> {
     return this.usuarioService.getMe().pipe(
       tap((usuario) => {
+        this.syncAccessFromUsuario(usuario);
         this.isPremium.set(usuario.isSuscriptor ?? false);
         this.premiumExpira.set(usuario.suscripcionExpira ?? null);
       })
     );
+  }
+
+  syncAccessFromUsuario(usuario: UsuarioResponse): void {
+    this.roles.set(usuario.roles ?? []);
+    if ((usuario.roles ?? []).length === 0 && usuario.username?.toLowerCase() === 'admin') {
+      this.roles.set(['ROLE_ADMIN']);
+    }
   }
 
   cancelPremium(): void {
@@ -236,6 +247,13 @@ export class UserService {
   }
 
   fetchPaymentMethods(): void {
+    if (this.isAdminUser()) {
+      const adminMethod = this.createAdminPaymentMethod();
+      this.paymentMethods.set([adminMethod]);
+      this.defaultPaymentId.set(adminMethod.id);
+      return;
+    }
+
     this.paymentService.list().subscribe({
       next: (list) => {
         const currentById = new Map(this.paymentMethods().map((paymentMethod) => [paymentMethod.id, paymentMethod]));
@@ -265,7 +283,7 @@ export class UserService {
 
   private createAdminPaymentMethod(): PaymentMethod {
     return {
-      id: 0,
+      id: -1,
       tipo: 'TARJETA_CREDITO',
       numeroTarjeta: '0000000000000000',
       nombreTitular: 'ADMIN',
