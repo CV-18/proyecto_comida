@@ -1,14 +1,8 @@
 import { Injectable, signal } from '@angular/core';
-
-export interface PaymentMethod {
-  id: string;
-  type: 'visa' | 'mastercard';
-  last4: string;
-  holder: string;
-  expiry: string;
-  isDefault: boolean;
-  color: string;
-}
+import { Observable, tap } from 'rxjs';
+import { MetodoPagoCreateRequest, MetodoPagoUpdateRequest, PaymentMethod } from '../models/payment.model';
+import { PaymentService } from './payment.service';
+import { UsuarioService } from './usuario.service';
 
 export interface Order {
   id: string;
@@ -55,73 +49,201 @@ const mockOrders: Order[] = [
   },
 ];
 
-const mockPayments: PaymentMethod[] = [
-  {
-    id: 'card-1',
-    type: 'visa',
-    last4: '4242',
-    holder: 'JOSE DOE',
-    expiry: '12/28',
-    isDefault: true,
-    color: 'from-gray-800 to-gray-900',
-  },
-  {
-    id: 'card-2',
-    type: 'mastercard',
-    last4: '8731',
-    holder: 'JOSE DOE',
-    expiry: '09/27',
-    isDefault: false,
-    color: 'from-orange-600 to-amber-700',
-  },
-];
+// Start with no saved payment methods; users can add them via UI
 
 @Injectable({ providedIn: 'root' })
 export class UserService {
   readonly isLoggedIn = signal(false);
   readonly isPremium = signal(false);
-  readonly paymentMethods = signal<PaymentMethod[]>(mockPayments);
+  readonly paymentMethods = signal<PaymentMethod[]>([]);
   readonly orders = signal<Order[]>(mockOrders);
-  readonly defaultPaymentId = signal<string | null>('card-1');
+  readonly defaultPaymentId = signal<number | null>(null);
   readonly user = signal<UserProfile | null>(null);
   readonly accounts = signal<StoredAccount[]>([]);
   readonly guestBalance = signal(100);
 
+  constructor(
+    private readonly paymentService: PaymentService,
+    private readonly usuarioService: UsuarioService
+  ) {}
+
   login(): void {
     this.isLoggedIn.set(true);
+    // Load persisted payment methods for the user
+    try {
+      this.fetchPaymentMethods();
+    } catch {
+      // ignore fetch errors
+    }
   }
 
   logout(): void {
     this.isLoggedIn.set(false);
     this.isPremium.set(false);
+    // clear sensitive user data
+    this.paymentMethods.set([]);
+    this.defaultPaymentId.set(null);
   }
 
-  subscribePremium(): void {
-    this.isPremium.set(true);
+  subscribePremium(): Observable<unknown> {
+    return this.usuarioService.subscribePremium().pipe(
+      tap((usuario) => {
+        this.isPremium.set(usuario.roles?.includes('ROLE_PREMIUM') ?? true);
+      }),
+      tap({
+        error: () => {
+          this.isPremium.set(true);
+        },
+      })
+    );
   }
 
   cancelPremium(): void {
     this.isPremium.set(false);
   }
 
-  addPaymentMethod(method: Omit<PaymentMethod, 'id'>): void {
-    const newMethod: PaymentMethod = { ...method, id: `card-${Date.now()}` };
-    this.paymentMethods.update((prev) => {
-      if (newMethod.isDefault) {
-        return [...prev.map((m) => ({ ...m, isDefault: false })), newMethod];
-      }
-      return [...prev, newMethod];
+  addPaymentMethod(method: MetodoPagoCreateRequest): Observable<PaymentMethod> {
+    return this.paymentService.create(method).pipe(
+      tap((created) => {
+        this.paymentMethods.update((prev) => {
+          const normalizedCreated: PaymentMethod = {
+            ...created,
+            saldoDisponible: created.saldoDisponible ?? 100,
+          };
+          const makeDefault = normalizedCreated.isDefault || prev.length === 0;
+          const final = makeDefault ? { ...normalizedCreated, isDefault: true } : normalizedCreated;
+          const updatedPrev = makeDefault
+            ? prev.map((paymentMethod) => ({ ...paymentMethod, isDefault: false }))
+            : prev;
+
+          if (makeDefault) {
+            this.defaultPaymentId.set(final.id);
+          }
+
+          return [...updatedPrev, final];
+        });
+      })
+    );
+  }
+
+  updatePaymentMethod(id: number, method: MetodoPagoUpdateRequest): Observable<PaymentMethod> {
+    return this.paymentService.update(id, method).pipe(
+      tap((updated) => {
+        this.paymentMethods.update((prev) => {
+          return prev.map((paymentMethod) => {
+            if (paymentMethod.id !== id) {
+              return paymentMethod;
+            }
+
+            return {
+              ...paymentMethod,
+              ...updated,
+              saldoDisponible: paymentMethod.saldoDisponible ?? updated.saldoDisponible ?? 100,
+            };
+          });
+        });
+
+        if (updated.isDefault) {
+          this.defaultPaymentId.set(updated.id);
+          this.paymentMethods.update((prev) =>
+            prev.map((paymentMethod) => ({
+              ...paymentMethod,
+              isDefault: paymentMethod.id === updated.id,
+            }))
+          );
+        }
+      })
+    );
+  }
+
+  removePaymentMethod(id: number): void {
+    this.paymentService.remove(id).subscribe({
+      next: () => this.updateLocalAfterRemove(id),
+      error: () => this.updateLocalAfterRemove(id),
     });
   }
 
-  removePaymentMethod(id: string): void {
-    this.paymentMethods.update((prev) => prev.filter((m) => m.id !== id));
+  private updateLocalAfterRemove(id: number): void {
+    this.paymentMethods.update((prev) => {
+      const filtered = prev.filter((m) => m.id !== id);
+      if (this.defaultPaymentId() === id) {
+        if (filtered.length > 0) {
+          const firstId = filtered[0].id;
+          this.defaultPaymentId.set(firstId);
+          return filtered.map((m, i) => ({ ...m, isDefault: i === 0 }));
+        }
+        this.defaultPaymentId.set(null);
+      }
+      return filtered;
+    });
   }
 
-  setDefaultPayment(id: string): void {
+  setDefaultPayment(id: number): void {
+    this.paymentService.setDefault(id).subscribe({
+      next: () => this.applyLocalDefault(id),
+      error: () => this.applyLocalDefault(id),
+    });
+  }
+
+  private applyLocalDefault(id: number): void {
     this.defaultPaymentId.set(id);
+    this.paymentMethods.update((prev) => prev.map((m) => ({ ...m, isDefault: m.id === id })));
+  }
+
+  fetchPaymentMethods(): void {
+    this.paymentService.list().subscribe({
+      next: (list) => {
+        const currentById = new Map(this.paymentMethods().map((paymentMethod) => [paymentMethod.id, paymentMethod]));
+        const normalizedList = list.map((paymentMethod) => ({
+          ...paymentMethod,
+          saldoDisponible: currentById.get(paymentMethod.id)?.saldoDisponible ?? paymentMethod.saldoDisponible ?? 100,
+        }));
+
+        this.paymentMethods.set(normalizedList);
+        const def = normalizedList.find((m) => m.isDefault) ?? normalizedList[0];
+        this.defaultPaymentId.set(def ? def.id : null);
+      },
+      error: () => {
+        // keep in-memory state if fetch fails
+      }
+    });
+  }
+
+  chargePaymentMethod(id: number, amount: number): boolean {
+    const paymentMethod = this.paymentMethods().find((method) => method.id === id);
+    if (!paymentMethod) {
+      return false;
+    }
+
+    const currentBalance = paymentMethod.saldoDisponible ?? 100;
+    if (currentBalance < amount) {
+      return false;
+    }
+
     this.paymentMethods.update((prev) =>
-      prev.map((m) => ({ ...m, isDefault: m.id === id }))
+      prev.map((method) =>
+        method.id === id
+          ? { ...method, saldoDisponible: currentBalance - amount }
+          : method
+      )
+    );
+
+    return true;
+  }
+
+  refundPaymentMethod(id: number, amount: number): void {
+    const paymentMethod = this.paymentMethods().find((method) => method.id === id);
+    if (!paymentMethod) {
+      return;
+    }
+
+    const currentBalance = paymentMethod.saldoDisponible ?? 100;
+    this.paymentMethods.update((prev) =>
+      prev.map((method) =>
+        method.id === id
+          ? { ...method, saldoDisponible: currentBalance + amount }
+          : method
+      )
     );
   }
 

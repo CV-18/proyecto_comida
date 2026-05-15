@@ -2,7 +2,13 @@ import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe } from '../../pipes/translate.pipe';
-import { UserService, PaymentMethod } from '../../services/user.service';
+import { UserService } from '../../services/user.service';
+import {
+  MetodoPagoCreateRequest,
+  MetodoPagoUpdateRequest,
+  PaymentMethod,
+  TipoMetodoPago,
+} from '../../models/payment.model';
 
 @Component({
   selector: 'app-payment-modal',
@@ -14,20 +20,36 @@ export class PaymentModal {
   isOpen = signal(false);
   isSubmitting = signal(false);
   errorMessage = signal<string | null>(null);
+  editingPaymentId = signal<number | null>(null);
 
   formData = {
-    type: 'visa' as 'visa' | 'mastercard',
-    cardNumber: '',
-    holder: '',
-    expiry: '',
-    cvv: '',
+    tipo: 'TARJETA_CREDITO' as TipoMetodoPago,
+    numeroTarjeta: '',
+    fechaExpiracion: '',
   };
 
   constructor(private userService: UserService) {}
 
   open(): void {
+    this.openForCreate();
+  }
+
+  openForCreate(): void {
+    this.editingPaymentId.set(null);
     this.isOpen.set(true);
     this.resetForm();
+    this.errorMessage.set(null);
+  }
+
+  openForEdit(paymentMethod: PaymentMethod): void {
+    this.editingPaymentId.set(paymentMethod.id);
+    this.isOpen.set(true);
+    this.formData = {
+      tipo: paymentMethod.tipo,
+      numeroTarjeta: paymentMethod.numeroTarjeta,
+      fechaExpiracion: paymentMethod.fechaExpiracion,
+    };
+    this.isSubmitting.set(false);
     this.errorMessage.set(null);
   }
 
@@ -39,11 +61,9 @@ export class PaymentModal {
 
   private resetForm(): void {
     this.formData = {
-      type: 'visa',
-      cardNumber: '',
-      holder: '',
-      expiry: '',
-      cvv: '',
+      tipo: 'TARJETA_CREDITO',
+      numeroTarjeta: '',
+      fechaExpiracion: '',
     };
     this.isSubmitting.set(false);
   }
@@ -51,57 +71,42 @@ export class PaymentModal {
   submitPaymentMethod(): void {
     this.errorMessage.set(null);
 
-    // Validaciones
-    if (!this.formData.cardNumber.trim()) {
+    const numeroTarjeta = this.formData.numeroTarjeta.replace(/\s/g, '');
+
+    if (!numeroTarjeta) {
       this.errorMessage.set('El número de tarjeta es requerido');
       return;
     }
 
-    if (this.formData.cardNumber.replace(/\s/g, '').length < 13) {
+    if (!/^[0-9]{13,19}$/.test(numeroTarjeta)) {
       this.errorMessage.set('El número de tarjeta no es válido');
       return;
     }
 
-    if (!this.formData.holder.trim()) {
-      this.errorMessage.set('El nombre del titular es requerido');
-      return;
-    }
-
-    if (!this.formData.expiry.trim()) {
+    if (!/^(0[1-9]|1[0-2])\/([0-9]{2})$/.test(this.formData.fechaExpiracion.trim())) {
       this.errorMessage.set('La fecha de vencimiento es requerida');
-      return;
-    }
-
-    if (!this.formData.cvv.trim() || this.formData.cvv.length < 3) {
-      this.errorMessage.set('El CVV no es válido');
       return;
     }
 
     this.isSubmitting.set(true);
 
-    // Simular validación de tarjeta
-    setTimeout(() => {
-      // Extraer últimos 4 dígitos
-      const last4 = this.formData.cardNumber.replace(/\s/g, '').slice(-4);
+    const paymentPayload: MetodoPagoCreateRequest | MetodoPagoUpdateRequest = {
+      tipo: this.formData.tipo,
+      numeroTarjeta,
+      fechaExpiracion: this.formData.fechaExpiracion.trim(),
+      isDefault: this.editingPaymentId() === null ? true : undefined,
+    };
 
-      // Crear nuevo método de pago
-      const newPaymentMethod: Omit<PaymentMethod, 'id'> = {
-        type: this.formData.type,
-        last4: last4,
-        holder: this.formData.holder.toUpperCase(),
-        expiry: this.formData.expiry,
-        isDefault: true, // Guardar como predeterminado automáticamente
-        color:
-          this.formData.type === 'visa'
-            ? 'from-blue-600 to-blue-800'
-            : 'from-orange-600 to-amber-700',
-      };
+    const request$ = this.editingPaymentId() === null
+      ? this.userService.addPaymentMethod(paymentPayload as MetodoPagoCreateRequest)
+      : this.userService.updatePaymentMethod(this.editingPaymentId() as number, paymentPayload as MetodoPagoUpdateRequest);
 
-      // Agregar método de pago
-      this.userService.addPaymentMethod(newPaymentMethod);
-
-      // Cerrar modal
-      this.close();
-    }, 1000);
+    request$.subscribe({
+      next: () => this.close(),
+      error: () => {
+        this.errorMessage.set('No se pudo guardar el método de pago');
+        this.isSubmitting.set(false);
+      },
+    });
   }
 }

@@ -17,6 +17,7 @@ export class CartDrawer {
 
   isProcessing = signal(false);
   errorMessage = signal<string | null>(null);
+  selectedPaymentId = signal<number | null>(null);
 
   constructor(
     public cart: CartService,
@@ -41,11 +42,10 @@ export class CartDrawer {
       return;
     }
 
-    // Validar que el usuario tenga un método de pago predeterminado
-    if (!this.userService.hasDefaultPaymentMethod()) {
-      this.errorMessage.set(
-        'Por favor, selecciona un método de pago predeterminado'
-      );
+    // Elegir método de pago: usar selección local si existe, si no usar el predeterminado
+    const chosenId = this.selectedPaymentId() ?? this.userService.defaultPaymentId();
+    if (!chosenId) {
+      this.errorMessage.set('Por favor, selecciona un método de pago predeterminado');
       return;
     }
 
@@ -78,11 +78,9 @@ export class CartDrawer {
       );
 
       // Obtener el método de pago predeterminado
-      const defaultPayment = this.userService.paymentMethods().find(
-        (p) => p.id === this.userService.defaultPaymentId()
-      );
+      const defaultPayment = this.userService.paymentMethods().find((p) => p.id === chosenId);
       const paymentMethod = defaultPayment
-        ? `${defaultPayment.type.toUpperCase()} terminada en ${defaultPayment.last4}`
+        ? `${defaultPayment.tipo} terminada en ${defaultPayment.numeroTarjeta.slice(-4)}`
         : 'Método de pago no especificado';
 
       // Generar y descargar el PDF del ticket

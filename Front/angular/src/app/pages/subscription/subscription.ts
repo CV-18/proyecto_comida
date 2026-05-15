@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { PaymentMethod } from '../../models/payment.model';
 import { UserService } from '../../services/user.service';
 import { TranslateService } from '../../services/translate.service';
 
@@ -8,7 +9,14 @@ import { TranslateService } from '../../services/translate.service';
 	imports: [RouterLink],
 	templateUrl: './subscription.html',
 })
-export class Subscription {
+export class Subscription implements OnInit {
+	readonly subscriptionPrice = 9.99;
+	readonly processing = signal(false);
+	readonly errorMessage = signal<string | null>(null);
+	readonly showConfirmation = signal(false);
+	readonly selectedPaymentId = signal<number | null>(null);
+	readonly chargePreview = signal<number>(0);
+
 	readonly benefits = [
 		'15% de descuento en todos los pedidos',
 		'Acceso a platos exclusivos y ediciones limitadas',
@@ -51,8 +59,71 @@ export class Subscription {
 		public translateService: TranslateService
 	) {}
 
+	ngOnInit(): void {
+		this.userService.fetchPaymentMethods();
+	}
+
+	get selectedPayment(): PaymentMethod | null {
+		const selectedId = this.selectedPaymentId() ?? this.userService.defaultPaymentId();
+		if (selectedId === null) {
+			return null;
+		}
+
+		return this.userService.paymentMethods().find((method) => method.id === selectedId) ?? null;
+	}
+
 	activatePremium(): void {
-		this.userService.subscribePremium();
-		this.userService.login();
+		this.errorMessage.set(null);
+
+		if (this.userService.paymentMethods().length === 0) {
+			this.errorMessage.set('Necesitas guardar una tarjeta antes de activar Premium.');
+			return;
+		}
+
+		const chosenPayment = this.selectedPayment;
+		if (!chosenPayment) {
+			this.errorMessage.set('Selecciona una tarjeta para continuar.');
+			return;
+		}
+
+		this.chargePreview.set(this.subscriptionPrice);
+		this.showConfirmation.set(true);
+	}
+
+	cancelConfirmation(): void {
+		this.showConfirmation.set(false);
+		this.processing.set(false);
+	}
+
+	confirmPremium(): void {
+		const chosenPayment = this.selectedPayment;
+		if (!chosenPayment) {
+			this.errorMessage.set('Selecciona una tarjeta para continuar.');
+			this.showConfirmation.set(false);
+			return;
+		}
+
+		const canCharge = this.userService.chargePaymentMethod(chosenPayment.id, this.subscriptionPrice);
+		if (!canCharge) {
+			this.errorMessage.set('La tarjeta seleccionada no tiene saldo suficiente para la suscripción.');
+			this.showConfirmation.set(false);
+			return;
+		}
+
+		this.processing.set(true);
+		this.userService.subscribePremium().subscribe({
+			next: () => {
+				this.userService.login();
+				this.userService.isPremium.set(true);
+				this.showConfirmation.set(false);
+				this.processing.set(false);
+			},
+			error: () => {
+				this.userService.refundPaymentMethod(chosenPayment.id, this.subscriptionPrice);
+				this.errorMessage.set('No se pudo completar la suscripción. Se ha restaurado el saldo de la tarjeta.');
+				this.showConfirmation.set(false);
+				this.processing.set(false);
+			},
+		});
 	}
 }

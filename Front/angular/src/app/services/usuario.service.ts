@@ -4,26 +4,28 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface UsuarioResponse {
-  id: number;
   nombre: string;
   apellidos: string;
   username: string;
   email: string;
-  telefono: string;
   direccion: string;
   codigoPostal: string;
+  telefono: string;
   ciudad: string;
   pais: string;
-  isSuscriptor: boolean;
+  roles: string[];
 }
 
 export interface UsuarioUpdateRequest {
   nombre?: string;
   apellidos?: string;
+  username?: string;
   email?: string;
-  telefono?: string;
+  password?: string;
+  confirmPassword?: string;
   direccion?: string;
   codigoPostal?: string;
+  telefono?: string;
   ciudad?: string;
   pais?: string;
 }

@@ -74,6 +74,34 @@
 				</div>
 
 				<div class="pt-3">
+					<!-- Payment method selector -->
+					@if (userService.paymentMethods().length > 0) {
+						<div class="mb-3">
+								<p class="text-sm text-gray-600 mb-2">Selecciona la tarjeta con la que quieres pagar</p>
+							@for (card of userService.paymentMethods(); track card.id) {
+									<label class="flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-colors"
+										[class]="card.id === (selectedPaymentId() ?? userService.defaultPaymentId()) ? 'border-amber-300 bg-amber-50' : 'border-gray-100 hover:bg-gray-50'">
+									<input type="radio" name="selectedPayment" (click)="selectedPaymentId.set(card.id)" [checked]="card.id === (selectedPaymentId() ?? userService.defaultPaymentId())" />
+									<div class="flex-1">
+											<div class="flex items-center gap-2">
+												<p class="font-semibold">{{ card.tipo }} ·•••• {{ card.numeroTarjeta.slice(-4) }}</p>
+												@if (card.id === userService.defaultPaymentId()) {
+													<span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">Predeterminada</span>
+												}
+											</div>
+											<p class="text-xs text-gray-500">Exp. {{ card.fechaExpiracion }}</p>
+											<p class="text-xs text-gray-400">Se usará para este pago si la dejas seleccionada</p>
+									</div>
+								</label>
+							}
+							<button type="button" class="mt-2 text-sm text-orange-600" (click)="paymentModal.open()">Añadir otra tarjeta</button>
+						</div>
+					} @else {
+						<div class="mb-3">
+							<p class="text-sm text-gray-500">No hay métodos de pago guardados.</p>
+							<button type="button" class="mt-2 text-sm text-orange-600" (click)="paymentModal.open()">Añadir tarjeta</button>
+						</div>
+					}
 				<button
 					type="button"
 					class="w-full px-4 py-3 rounded-full bg-amber-500 text-white font-medium hover:bg-amber-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
