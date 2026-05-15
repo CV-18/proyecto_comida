@@ -33,9 +33,9 @@
 					<p class="text-amber-400 text-sm font-semibold">{{ 'platos.premiumTitle' | translate }}</p>
 					<p class="text-sm text-gray-300">{{ 'platos.premiumSubtitle' | translate }}</p>
 				</div>
-				<button type="button" (click)="userService.subscribePremium()" class="px-5 py-2.5 rounded-full bg-linear-to-r from-amber-400 to-orange-500 text-white font-semibold text-sm">
+				<a routerLink="/suscripcion" class="px-5 py-2.5 rounded-full bg-linear-to-r from-amber-400 to-orange-500 text-white font-semibold text-sm">
 					{{ 'platos.premiumCta' | translate }}
-				</button>
+				</a>
 			</div>
 		}
 

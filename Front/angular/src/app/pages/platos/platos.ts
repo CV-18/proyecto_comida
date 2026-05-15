@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { CartService, type CartItem } from '../../services/cart.service';
 import { UserService } from '../../services/user.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
@@ -7,7 +8,7 @@ import { TranslateService } from '../../services/translate.service';
 
 @Component({
   selector: 'app-platos',
-  imports: [CurrencyPipe, TranslatePipe],
+  imports: [CurrencyPipe, RouterLink, TranslatePipe],
   templateUrl: './platos.html',
 })
 export class Platos {
