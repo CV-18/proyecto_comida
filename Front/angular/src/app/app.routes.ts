@@ -7,6 +7,8 @@ import { Account } from './pages/account/account';
 import { Auth } from './pages/auth/auth';
 import { Subscription } from './pages/subscription/subscription';
 import { About } from './pages/about/about';
+import { Admin } from './pages/admin/admin';
+import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
 	{
@@ -23,6 +25,7 @@ export const routes: Routes = [
 			{ path: 'suscripcion', component: Subscription },
 			{ path: 'about', component: About },
 			{ path: 'nosotros', component: About },
+			{ path: 'admin', component: Admin, canActivate: [adminGuard] },
 			{ path: '**', redirectTo: '' },
 		],
 	},

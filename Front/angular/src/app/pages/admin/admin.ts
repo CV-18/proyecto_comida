@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { CatalogAdminService, type PlatoCreateRequest, type PlatoResponse, type PlatoUpdateRequest } from '../../services/catalog-admin.service';
 import { AuthService } from '../../services/auth.service';
 
@@ -108,9 +109,10 @@ export class Admin {
         this.resetPlatoForm();
         this.loadPlatos();
       },
-      error: () => {
+      error: (error) => {
         this.platoStatus = 'error';
-        this.platoMessage = this.editingPlatoId === null ? 'No se pudo guardar el plato. Revisa el endpoint o los permisos del backend.' : 'No se pudo actualizar el plato. Revisa el endpoint o los permisos del backend.';
+        const fallback = this.editingPlatoId === null ? 'No se pudo guardar el plato. Revisa el endpoint o los permisos del backend.' : 'No se pudo actualizar el plato. Revisa el endpoint o los permisos del backend.';
+        this.platoMessage = this.extractErrorMessage(error, fallback);
       }
     });
   }
@@ -128,11 +130,34 @@ export class Admin {
         }
         this.loadPlatos();
       },
-      error: () => {
+      error: (error) => {
         this.platoStatus = 'error';
-        this.platoMessage = 'No se pudo eliminar el plato. Revisa el endpoint o los permisos del backend.';
+        this.platoMessage = this.extractErrorMessage(error, 'No se pudo eliminar el plato. Revisa el endpoint o los permisos del backend.');
       }
     });
+  }
+
+  private extractErrorMessage(error: unknown, fallback: string): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return fallback;
+    }
+
+    const body = error.error;
+
+    if (typeof body === 'string') {
+      return body.trim() || fallback;
+    }
+
+    if (body && typeof body === 'object') {
+      const details = body as Record<string, unknown>;
+      const message = details['message'] ?? details['errorMessage'] ?? details['detail'] ?? details['title'] ?? details['error'];
+
+      if (typeof message === 'string' && message.trim().length > 0) {
+        return message.trim();
+      }
+    }
+
+    return fallback;
   }
 
   badgeClass(state: StatusState): string {

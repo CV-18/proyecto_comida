@@ -77,10 +77,27 @@ export class AuthService {
     const payload = this.decodeToken();
     if (!payload) return false;
 
-    // Spring Security mete los roles en 'roles' o en 'authorities'
-    const roles: string[] =
-      payload['roles'] ?? payload['authorities'] ?? [];
+    // Spring Security puede meter los roles en varios campos
+    const rolesChecks = [
+      payload['roles'],
+      payload['authorities'],
+      payload['ROLE_ADMIN'],
+      (payload['scope'] as string)?.split?.(' '),
+    ];
 
-    return roles.includes('ROLE_ADMIN');
+    for (const rolesValue of rolesChecks) {
+      if (Array.isArray(rolesValue)) {
+        if (rolesValue.includes('ROLE_ADMIN') || rolesValue.includes('admin')) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  // Debug method to inspect token content
+  getTokenDebugInfo(): Record<string, any> | null {
+    return this.decodeToken();
   }
 }
