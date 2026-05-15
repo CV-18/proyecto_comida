@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { NgClass } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { UserService } from '../../services/user.service';
@@ -74,9 +75,9 @@ export class Auth implements OnInit {
           this.isLoading = false;
           void this.router.navigateByUrl('/cuenta');
         },
-        error: () => {
+        error: (error) => {
           this.isLoading = false;
-          this.formError = 'Usuario o contraseña incorrectos.';
+          this.formError = this.getBackendErrorMessage(error, 'Usuario o contraseña incorrectos.');
         }
       });
       return;
@@ -108,11 +109,64 @@ export class Auth implements OnInit {
         this.isLoading = false;
         void this.router.navigateByUrl('/cuenta');
       },
-      error: () => {
+      error: (error) => {
         this.isLoading = false;
-        this.formError = 'Error al crear la cuenta. Inténtalo de nuevo.';
+        this.formError = this.getBackendErrorMessage(error, 'Error al crear la cuenta. Inténtalo de nuevo.');
       }
     });
+  }
+
+  private getBackendErrorMessage(error: unknown, fallback: string): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return fallback;
+    }
+
+    const body = error.error;
+
+    if (typeof body === 'string') {
+      return body.trim() || fallback;
+    }
+
+    if (body && typeof body === 'object') {
+      const details = body as Record<string, unknown>;
+      const fieldMessages = [details['errors'], details['violations'], details['fieldErrors']]
+        .flatMap((value) => this.collectErrorMessages(value));
+
+      if (fieldMessages.length > 0) {
+        return fieldMessages.join(' ');
+      }
+
+      const directMessages = [details['message'], details['errorMessage'], details['detail'], details['title'], details['error']]
+        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+      if (directMessages.length > 0) {
+        return directMessages[0];
+      }
+    }
+
+    return fallback;
+  }
+
+  private collectErrorMessages(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .map((item) => {
+        if (typeof item === 'string') {
+          return item.trim();
+        }
+
+        if (!item || typeof item !== 'object') {
+          return '';
+        }
+
+        const record = item as Record<string, unknown>;
+        const message = record['message'] ?? record['defaultMessage'] ?? record['reason'];
+        return typeof message === 'string' ? message.trim() : '';
+      })
+      .filter((message): message is string => message.length > 0);
   }
 
   private validateSignup(): string | null {
