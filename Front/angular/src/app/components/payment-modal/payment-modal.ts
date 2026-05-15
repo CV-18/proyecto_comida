@@ -25,7 +25,9 @@ export class PaymentModal {
   formData = {
     tipo: 'TARJETA_CREDITO' as TipoMetodoPago,
     numeroTarjeta: '',
+    nombreTitular: '',
     fechaExpiracion: '',
+    cvv: '',
   };
 
   constructor(private userService: UserService) {}
@@ -47,7 +49,9 @@ export class PaymentModal {
     this.formData = {
       tipo: paymentMethod.tipo,
       numeroTarjeta: paymentMethod.numeroTarjeta,
+      nombreTitular: paymentMethod.nombreTitular ?? '',
       fechaExpiracion: paymentMethod.fechaExpiracion,
+      cvv: paymentMethod.cvv ?? '',
     };
     this.isSubmitting.set(false);
     this.errorMessage.set(null);
@@ -63,7 +67,9 @@ export class PaymentModal {
     this.formData = {
       tipo: 'TARJETA_CREDITO',
       numeroTarjeta: '',
+      nombreTitular: '',
       fechaExpiracion: '',
+      cvv: '',
     };
     this.isSubmitting.set(false);
   }
@@ -83,8 +89,20 @@ export class PaymentModal {
       return;
     }
 
+    const nombreTitular = this.formData.nombreTitular.trim().toUpperCase();
+    if (!nombreTitular) {
+      this.errorMessage.set('El nombre del titular es requerido');
+      return;
+    }
+
     if (!/^(0[1-9]|1[0-2])\/([0-9]{2})$/.test(this.formData.fechaExpiracion.trim())) {
       this.errorMessage.set('La fecha de vencimiento es requerida');
+      return;
+    }
+
+    const cvv = this.formData.cvv.trim();
+    if (!/^[0-9]{3,4}$/.test(cvv)) {
+      this.errorMessage.set('El CVV no es válido');
       return;
     }
 
@@ -93,7 +111,9 @@ export class PaymentModal {
     const paymentPayload: MetodoPagoCreateRequest | MetodoPagoUpdateRequest = {
       tipo: this.formData.tipo,
       numeroTarjeta,
+      nombreTitular,
       fechaExpiracion: this.formData.fechaExpiracion.trim(),
+      cvv,
       isDefault: this.editingPaymentId() === null ? true : undefined,
     };
 

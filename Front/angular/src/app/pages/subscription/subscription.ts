@@ -86,6 +86,7 @@ export class Subscription implements OnInit {
 			return;
 		}
 
+		// El backend validará el saldo disponible
 		this.chargePreview.set(this.subscriptionPrice);
 		this.showConfirmation.set(true);
 	}
@@ -103,24 +104,16 @@ export class Subscription implements OnInit {
 			return;
 		}
 
-		const canCharge = this.userService.chargePaymentMethod(chosenPayment.id, this.subscriptionPrice);
-		if (!canCharge) {
-			this.errorMessage.set('La tarjeta seleccionada no tiene saldo suficiente para la suscripción.');
-			this.showConfirmation.set(false);
-			return;
-		}
-
 		this.processing.set(true);
-		this.userService.subscribePremium().subscribe({
+		this.userService.subscribePremium(chosenPayment.id).subscribe({
 			next: () => {
-				this.userService.login();
-				this.userService.isPremium.set(true);
 				this.showConfirmation.set(false);
 				this.processing.set(false);
+				this.errorMessage.set(null);
 			},
-			error: () => {
-				this.userService.refundPaymentMethod(chosenPayment.id, this.subscriptionPrice);
-				this.errorMessage.set('No se pudo completar la suscripción. Se ha restaurado el saldo de la tarjeta.');
+			error: (err) => {
+				const errorMsg = err?.error?.message || 'No se pudo completar la suscripción. Por favor, intenta de nuevo.';
+				this.errorMessage.set(errorMsg);
 				this.showConfirmation.set(false);
 				this.processing.set(false);
 			},

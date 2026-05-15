@@ -70,12 +70,24 @@ export class UserService {
 
   login(): void {
     this.isLoggedIn.set(true);
-    // Load persisted payment methods for the user
-    try {
-      this.fetchPaymentMethods();
-    } catch {
-      // ignore fetch errors
-    }
+    // Sync Premium status from server and load payment methods
+    this.refreshUserState().subscribe({
+      next: () => {
+        try {
+          this.fetchPaymentMethods();
+        } catch {
+          // ignore fetch errors
+        }
+      },
+      error: () => {
+        // if refresh fails, still load payment methods
+        try {
+          this.fetchPaymentMethods();
+        } catch {
+          // ignore
+        }
+      }
+    });
   }
 
   logout(): void {
@@ -87,16 +99,20 @@ export class UserService {
     this.defaultPaymentId.set(null);
   }
 
-  subscribePremium(): Observable<UsuarioResponse> {
-    return this.usuarioService.subscribePremium().pipe(
+  subscribePremium(paymentMethodId: number): Observable<UsuarioResponse> {
+    return this.usuarioService.subscribePremium(paymentMethodId).pipe(
       tap((usuario) => {
         this.isPremium.set(usuario.isSuscriptor ?? true);
         this.premiumExpira.set(usuario.suscripcionExpira ?? null);
-      }),
-      tap({
-        error: () => {
-          this.isPremium.set(true);
-        },
+      })
+    );
+  }
+
+  refreshUserState(): Observable<UsuarioResponse> {
+    return this.usuarioService.getMe().pipe(
+      tap((usuario) => {
+        this.isPremium.set(usuario.isSuscriptor ?? false);
+        this.premiumExpira.set(usuario.suscripcionExpira ?? null);
       })
     );
   }
@@ -210,62 +226,6 @@ export class UserService {
         // keep in-memory state if fetch fails
       }
     });
-  }
-
-  chargePaymentMethod(id: number, amount: number): boolean {
-    const paymentMethod = this.paymentMethods().find((method) => method.id === id);
-    if (!paymentMethod) {
-      return false;
-    }
-
-    if (paymentMethod.saldoDisponible < amount) {
-      return false;
-    }
-
-    const previousBalance = paymentMethod.saldoDisponible;
-
-    this.paymentMethods.update((prev) =>
-      prev.map((method) =>
-        method.id === id
-          ? { ...method, saldoDisponible: method.saldoDisponible - amount }
-          : method
-      )
-    );
-
-    this.usuarioService.cobrarMetodoPago(id, amount).subscribe({
-      next: (res) => {
-        this.paymentMethods.update((prev) =>
-          prev.map((method) =>
-            method.id === id ? { ...method, saldoDisponible: res.saldoDisponible } : method
-          )
-        );
-      },
-      error: () => {
-        this.paymentMethods.update((prev) =>
-          prev.map((method) =>
-            method.id === id ? { ...method, saldoDisponible: previousBalance } : method
-          )
-        );
-      }
-    });
-
-    return true;
-  }
-
-  refundPaymentMethod(id: number, amount: number): void {
-    const paymentMethod = this.paymentMethods().find((method) => method.id === id);
-    if (!paymentMethod) {
-      return;
-    }
-
-    const currentBalance = paymentMethod.saldoDisponible ?? 100;
-    this.paymentMethods.update((prev) =>
-      prev.map((method) =>
-        method.id === id
-          ? { ...method, saldoDisponible: currentBalance + amount }
-          : method
-      )
-    );
   }
 
   updateUser(data: Partial<UserProfile>): void {

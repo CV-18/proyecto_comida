@@ -47,8 +47,10 @@ export class UsuarioService {
     return this.http.put<UsuarioResponse>(`${this.API}/me`, data);
   }
 
-  subscribePremium(): Observable<UsuarioResponse> {
-    return this.http.post<UsuarioResponse>(`${this.API}/me/suscribir`, {});
+  subscribePremium(paymentMethodId: number): Observable<UsuarioResponse> {
+    return this.http.post<UsuarioResponse>(`${this.API}/me/suscribir`, {
+      metodosPagoId: paymentMethodId,
+    });
   }
 
   cobrarMetodoPago(id: number, monto: number): Observable<{ saldoDisponible: number }> {
