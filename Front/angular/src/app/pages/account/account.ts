@@ -6,6 +6,7 @@ import { TranslateService } from '../../services/translate.service';
 import { UsuarioService, UsuarioResponse } from '../../services/usuario.service';
 import { PaymentModal } from '../../components/payment-modal/payment-modal';
 import { PaymentMethod } from '../../models/payment.model';
+import { AuthService } from '../../services/auth.service';
 
 type AccountTab = 'perfil' | 'pedidos' | 'pagos' | 'admin';
 
@@ -31,10 +32,15 @@ export class Account implements OnInit {
   constructor(
     public userService: UserService,
     public translateService: TranslateService,
-    private readonly usuarioService: UsuarioService
+    private readonly usuarioService: UsuarioService,
+    private readonly authService: AuthService
   ) {}
 
   ngOnInit(): void {
+    if (!this.authService.isLoggedIn()) {
+      return;
+    }
+
     this.usuarioService.getMe().subscribe({
       next: (usuario) => {
         this.usuario = usuario;

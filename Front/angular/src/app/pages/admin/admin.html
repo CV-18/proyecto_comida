@@ -137,6 +137,23 @@
 						</select>
 					</label>
 
+					<label>
+						<span class="mb-2 block text-sm font-medium text-gray-700">País</span>
+						<select [(ngModel)]="platoForm.pais" name="platoPais" class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400">
+							@for (pais of paises; track pais) {
+								<option [value]="pais">{{ pais }}</option>
+							}
+						</select>
+					</label>
+
+					<label class="flex items-center gap-3 rounded-2xl border border-gray-200 px-4 py-3 sm:col-span-2">
+						<input [(ngModel)]="platoForm.isPremium" name="platoPremium" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400" />
+						<div>
+							<span class="block text-sm font-medium text-gray-700">Plato premium</span>
+							<p class="text-xs text-gray-500">Actívalo para que el plato aparezca como premium en los filtros públicos.</p>
+						</div>
+					</label>
+
 					<label class="sm:col-span-2">
 						<span class="mb-2 block text-sm font-medium text-gray-700">Descripcion</span>
 						<textarea [(ngModel)]="platoForm.descripcion" name="platoDescripcion" rows="4" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400" placeholder="Describe el plato para la ficha publica"></textarea>

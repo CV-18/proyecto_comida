@@ -1,39 +1,198 @@
-<section class="bg-gray-50 min-h-screen pb-14 pt-8">
-	<div class="max-w-6xl mx-auto px-4">
-		<div class="text-center mb-8">
-			<h1 class="text-4xl font-bold text-gray-900 mb-2">{{ 'menus.title' | translate }}</h1>
-			<p class="text-gray-500">{{ 'menus.subtitle' | translate }}</p>
-		</div>
+<section class="min-h-screen bg-linear-to-b from-gray-50 via-white to-orange-50/40 pb-16 pt-8">
+	<div class="mx-auto max-w-7xl px-4">
+		<div class="overflow-hidden rounded-[2rem] border border-gray-100 bg-linear-to-br from-gray-950 via-gray-900 to-orange-950 text-white shadow-2xl shadow-gray-900/10">
+			<div class="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
+				<div class="p-8 sm:p-10 lg:p-12">
+					<span class="inline-flex items-center rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-300">Menú a medida</span>
+					<h1 class="mt-5 text-4xl font-bold tracking-tight sm:text-5xl">Elige 3 platos y construye tu menú</h1>
+					<p class="mt-4 max-w-2xl text-gray-300">Selecciona primero el país y luego el plato de cada plato. El primer y el segundo plato admiten entrantes o principales; el tercer plato solo muestra postres.</p>
 
-		<div class="mb-8 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
-			<div class="flex gap-2 min-w-max">
-				@for (category of categories; track category) {
-					<button
-						type="button"
-						(click)="setCategory(category)"
-						class="px-5 py-2.5 rounded-xl text-sm font-medium transition-colors"
-						[class]="activeCategory === category ? 'px-5 py-2.5 rounded-xl text-sm font-medium bg-gray-900 text-white' : 'px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50'"
-					>
-						{{ ('common.countries.' + category.toLowerCase()) | translate }}
-					</button>
-				}
+					@if (userService.isPremium()) {
+						<div class="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm text-emerald-100">
+							<p class="font-semibold text-emerald-200">Modo premium activo</p>
+							<p class="mt-1 text-emerald-100/85">Puedes abrir la vista global y mezclar platos de cualquier país, incluidos los premium.</p>
+						</div>
+					} @else {
+						<div class="mt-6 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+							<p class="font-semibold text-amber-200">Modo estándar</p>
+							<p class="mt-1 text-amber-100/85">Solo verás platos normales del país elegido. Los platos premium quedan bloqueados hasta suscribirte.</p>
+							<a routerLink="/suscripcion" class="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-gray-950 hover:bg-amber-300">Hacerme Premium</a>
+						</div>
+					}
+				</div>
+
+				<div class="border-t border-white/10 bg-white/5 p-8 sm:p-10 lg:border-l lg:border-t-0">
+					<div class="rounded-[1.5rem] border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+						<p class="text-xs uppercase tracking-[0.25em] text-gray-300">Resumen del menú</p>
+						<div class="mt-4 flex items-end justify-between gap-4">
+							<div>
+								<p class="text-sm text-gray-300">Platos completados</p>
+								<p class="text-3xl font-bold text-white">{{ selectedDishes.length }}/{{ slots.length }}</p>
+							</div>
+							<div class="rounded-2xl bg-white/10 px-4 py-3 text-right">
+								<p class="text-xs text-gray-300">Precio del menú</p>
+								<p class="text-xl font-bold text-white">{{ menuPrice | currency:translateService.currencyCode }}</p>
+							</div>
+						</div>
+
+						<div class="mt-6 space-y-3">
+							@for (slot of slots; track slot.id) {
+								<div class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+									<div>
+										<p class="font-semibold text-white">{{ slot.title }}</p>
+										<p class="text-xs text-gray-300">{{ slot.subtitle }}</p>
+									</div>
+									<div class="text-right">
+										<p class="text-sm font-semibold text-amber-300">{{ selectedDishBySlot[slot.id]?.name ?? 'Sin elegir' }}</p>
+										@if (selectedDishBySlot[slot.id]) {
+											<p class="text-xs text-gray-300">{{ selectedDishBySlot[slot.id]?.price | currency:translateService.currencyCode }}</p>
+										}
+									</div>
+								</div>
+							}
+						</div>
+
+						@if (errorMessage) {
+							<div class="mt-5 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">{{ errorMessage }}</div>
+						}
+
+						<button type="button" (click)="addMenuToCart()" [disabled]="!canCreateMenu" class="mt-6 w-full rounded-full bg-linear-to-r from-amber-400 to-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-400/20 transition disabled:cursor-not-allowed disabled:opacity-50">Añadir menú al carrito</button>
+					</div>
+				</div>
 			</div>
 		</div>
 
-		<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-			@for (menu of menus; track menu.id) {
-				<article class="bg-white border border-gray-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition-shadow">
-					<div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center text-sm font-bold mb-4">M</div>
-					<h2 class="font-semibold text-gray-900 text-lg">{{ menu.name }}</h2>
-					<p class="text-sm text-gray-500 mt-1">{{ 'menus.description' | translate }}</p>
-					<div class="mt-5 flex items-center justify-between">
-						<p class="text-xl font-bold text-gray-900">{{ menu.price | currency:translateService.currencyCode }}</p>
-						<button type="button" (click)="addToCart(menu)" class="px-4 py-2 rounded-full bg-orange-500 text-white text-sm font-medium hover:bg-orange-600">
-							{{ 'menus.add' | translate }}
+		<div class="mt-8 rounded-[2rem] border border-gray-100 bg-white p-3 shadow-sm overflow-x-auto">
+			<div class="flex min-w-max gap-2">
+				@for (country of countries; track country.value) {
+					@if (country.value !== 'Todos' || userService.isPremium()) {
+						@let isDisabled = !userService.isPremium() && selectedDishes.length > 0 && country.value !== activeCategory;
+						<button type="button" (click)="setCategory(country.value)" [disabled]="isDisabled" class="group rounded-2xl px-5 py-3 text-left transition-all disabled:cursor-not-allowed" [class]="activeCategory === country.value ? 'bg-gray-950 text-white shadow-lg shadow-gray-950/15' : isDisabled ? 'bg-gray-100 text-gray-400' : 'bg-gray-50 text-gray-700 hover:bg-orange-50 hover:text-orange-700'">
+							<p class="text-sm font-semibold">{{ country.label }}</p>
+							<p class="mt-1 max-w-48 text-xs opacity-80">{{ country.description }}</p>
 						</button>
-					</div>
-				</article>
+					}
+				}
+			</div>
+
+			@if (!userService.isPremium() && selectedDishes.length > 0) {
+				<div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+					<p class="text-sm text-amber-900"><span class="font-semibold">Solo usuarios premium</span> pueden mezclar platos de diferentes países. Tu menú se crea solo con platos de <strong>{{ ('common.countries.' + activeCategory.toLowerCase()) | translate }}</strong>.</p>
+				</div>
 			}
 		</div>
+
+		<div class="mt-8 flex items-center justify-between gap-4 flex-wrap">
+			<div>
+				<h2 class="text-2xl font-bold text-gray-900">Platos de selección</h2>
+				<p class="text-sm text-gray-500">Pulsa un plato para abrir la ventana emergente con los platos disponibles.</p>
+			</div>
+			<div class="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-600 shadow-sm">
+				{{ ('common.countries.' + activeCategory.toLowerCase()) | translate }}
+			</div>
+		</div>
+
+		@if (activeCategory === 'Todos') {
+			<div class="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">Vista global premium: puedes elegir platos de cualquier país.</div>
+		}
+
+		@if (isLoading) {
+			<div class="mt-6 rounded-3xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center text-sm text-gray-500 shadow-sm">Cargando platos...</div>
+		} @else {
+			<div class="mt-6 grid gap-5 lg:grid-cols-3">
+				@for (slot of slots; track slot.id) {
+					<button type="button" (click)="openSlot(slot.id)" class="text-left rounded-[1.75rem] border bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl" [class]="selectedDishBySlot[slot.id] ? 'border-orange-300 ring-4 ring-orange-100' : 'border-gray-100'">
+						<div class="flex items-start justify-between gap-4">
+							<div>
+								<p class="text-xs uppercase tracking-[0.2em] text-gray-400">Plato {{ slot.id }}</p>
+								<h3 class="mt-2 text-2xl font-bold text-gray-900">{{ slot.title }}</h3>
+								<p class="mt-2 text-sm text-gray-500">{{ slot.subtitle }}</p>
+							</div>
+							<div class="rounded-2xl bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-700">
+								{{ selectedDishBySlot[slot.id] ? 'Elegido' : 'Elegir' }}
+							</div>
+						</div>
+
+						<div class="mt-5 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4">
+							@if (selectedDishBySlot[slot.id]) {
+								<div class="flex items-center justify-between gap-3">
+									<div>
+										<p class="font-semibold text-gray-900">{{ selectedDishBySlot[slot.id]?.name }}</p>
+										<p class="text-xs text-gray-500">{{ ('common.countries.' + selectedDishBySlot[slot.id]!.country.toLowerCase()) | translate }}</p>
+									</div>
+									<p class="font-bold text-gray-900">{{ selectedDishBySlot[slot.id]?.price | currency:translateService.currencyCode }}</p>
+								</div>
+							} @else {
+								<p class="text-sm text-gray-500">Aún no has elegido un plato para este plato.</p>
+							}
+						</div>
+					</button>
+				}
+			</div>
+		}
+
 	</div>
+
+	@if (activeSlot) {
+		<div class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+			<button type="button" class="absolute inset-0 bg-black/60" (click)="closeModal()" aria-label="Cerrar selector"></button>
+			<div class="relative z-10 w-full max-w-6xl max-h-[90vh] rounded-[2rem] border border-gray-100 bg-white shadow-2xl shadow-black/20 flex flex-col">
+				<div class="flex items-center justify-between gap-4 border-b border-gray-100 px-6 py-5 sm:px-8 flex-shrink-0">
+					<div>
+						<p class="text-xs font-semibold uppercase tracking-[0.2em] text-orange-500">Selector de platos</p>
+						<h3 class="mt-1 text-2xl font-bold text-gray-950">{{ currentSlot?.title }}</h3>
+						<p class="text-sm text-gray-500">{{ currentSlot?.subtitle }}</p>
+					</div>
+					<button type="button" (click)="closeModal()" class="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cerrar</button>
+				</div>
+
+				<div class="px-6 py-5 sm:px-8 overflow-y-auto">
+					<div class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-gray-50 px-4 py-3">
+						<p class="text-sm text-gray-600">Mostrando {{ modalPageStart }}-{{ modalPageEnd }} de {{ filteredModalDishes.length }} platos</p>
+						<div class="flex items-center gap-2">
+							<button type="button" (click)="previousModalPage()" [disabled]="modalPage === 1" class="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-white">Anterior</button>
+							<span class="rounded-full bg-gray-950 px-4 py-2 text-sm font-medium text-white">Página {{ modalPage }} de {{ totalModalPages }}</span>
+							<button type="button" (click)="nextModalPage()" [disabled]="modalPage === totalModalPages" class="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-white">Siguiente</button>
+						</div>
+					</div>
+
+					@if (filteredModalDishes.length === 0) {
+					<div class="rounded-3xl border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center text-sm text-gray-500">No hay platos para este plato con el filtro actual.</div>
+					} @else {
+						<div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+							@for (dish of paginatedDishes; track dish.id) {
+								<button type="button" (click)="selectDish(dish)" class="group overflow-hidden rounded-[1.5rem] border border-gray-100 bg-white text-left shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl">
+									<div class="relative aspect-[16/10] overflow-hidden">
+										<img [src]="dish.image" [alt]="dish.name" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+										<div class="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent"></div>
+										<div class="absolute left-4 top-4 flex gap-2">
+											<span class="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-gray-900">{{ ('common.countries.' + dish.country.toLowerCase()) | translate }}</span>
+											@if (dish.isPremium) {
+												<span class="rounded-full bg-amber-400 px-3 py-1 text-xs font-semibold text-gray-950">Premium</span>
+											}
+										</div>
+										<div class="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3">
+											<div>
+												<p class="text-xs uppercase tracking-[0.2em] text-white/80">{{ dish.categoria }}</p>
+												<h4 class="mt-1 text-lg font-bold text-white">{{ dish.name }}</h4>
+											</div>
+											<p class="rounded-full bg-white/90 px-3 py-1 text-sm font-bold text-gray-950">{{ dish.price | currency:translateService.currencyCode }}</p>
+										</div>
+									</div>
+
+									<div class="p-4">
+										<p class="text-sm text-gray-500 line-clamp-3">{{ dish.description }}</p>
+										<div class="mt-4 flex items-center justify-between gap-3">
+											<p class="text-xs font-medium text-gray-600">{{ dish.isPremium ? 'Solo premium' : 'Disponible para todos' }}</p>
+											<span class="rounded-full bg-orange-500 px-3 py-1 text-xs font-semibold text-white">Elegir</span>
+										</div>
+									</div>
+								</button>
+							}
+						</div>
+					}
+				</div>
+			</div>
+		</div>
+	}
 </section>

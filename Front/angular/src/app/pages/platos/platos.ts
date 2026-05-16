@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CartService, type CartItem } from '../../services/cart.service';
 import { UserService } from '../../services/user.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
@@ -27,16 +27,18 @@ const platoImages = [
 export class Platos {
   activeFilter = 'Todos';
   search = '';
+  readonly pageSize = 10;
+  currentPage = 1;
 
   readonly filters = [
-    { value: 'Todos', label: 'Todos' },
+    { value: 'Todos',    label: 'Todos'    },
     { value: 'Mexicano', label: 'Mexicano' },
-    { value: 'Indio', label: 'Indio' },
-    { value: 'Griego', label: 'Griego' },
+    { value: 'Indio',    label: 'Indio'    },
+    { value: 'Griego',   label: 'Griego'   },
     { value: 'Italiano', label: 'Italiano' },
-    { value: 'Japones', label: 'Japonés' },
-    { value: 'Espanol', label: 'Español' },
-    { value: 'Premium', label: 'Premium' },
+    { value: 'Japones',  label: 'Japonés'  },
+    { value: 'Espanol',  label: 'Español'  },
+    { value: 'Premium',  label: 'Premium'  },
   ];
 
   platos: PlatosViewItem[] = [];
@@ -46,8 +48,21 @@ export class Platos {
     public userService: UserService,
     public translateService: TranslateService,
     private readonly catalogService: CatalogService,
-    private readonly cdr: ChangeDetectorRef
+    private readonly cdr: ChangeDetectorRef,
+    private readonly route: ActivatedRoute
   ) {
+    this.route.queryParamMap.subscribe((params) => {
+      const filter = params.get('filter');
+      if (!filter) {
+        return;
+      }
+
+      const normalizedFilter = this.normalizeCountry(filter);
+      if (this.filters.some((item) => item.value === normalizedFilter)) {
+        this.activeFilter = normalizedFilter;
+      }
+    });
+
     this.loadPlatos();
   }
 
@@ -68,26 +83,30 @@ export class Platos {
     return {
       id: String(plato.id),
       name: plato.nombre,
-      country: this.mapCountry(plato.categoria),
+      country: this.mapCountry(plato.pais),
       price: plato.precio,
       quantity: 1,
       image: platoImages[index % platoImages.length],
-      isPremium: plato.variante === 'BAJO_CARBOHIDRATO' || plato.precio >= 20,
+      isPremium: plato.isPremium,
       description: plato.descripcion,
       rating: this.computeRating(plato.id, plato.precio),
     };
   }
 
-  private mapCountry(category: PlatoResponse['categoria']): string {
-    switch (category) {
-      case 'ENTRANTE':
-        return 'Espanol';
-      case 'PRINCIPAL':
-        return 'Italiano';
-      case 'POSTRE':
-      default:
-        return 'Mexicano';
+  private mapCountry(pais: PlatoResponse['pais']): string {
+    switch (this.normalizeCountry(pais)) {
+      case 'ESPANOL':  return 'Espanol';
+      case 'ITALIANO': return 'Italiano';
+      case 'MEXICANO': return 'Mexicano';
+      case 'JAPONES':  return 'Japones';
+      case 'INDIO':    return 'Indio';
+      case 'GRIEGO':   return 'Griego';
+      default:         return 'Espanol';
     }
+  }
+
+  private normalizeCountry(country: string): string {
+    return country.trim().toUpperCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
   }
 
   private computeRating(id: number, price: number): number {
@@ -109,13 +128,44 @@ export class Platos {
     });
   }
 
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredPlatos.length / this.pageSize));
+  }
+
+  get paginatedPlatos(): PlatosViewItem[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredPlatos.slice(start, start + this.pageSize);
+  }
+
+  get pageStart(): number {
+    return this.filteredPlatos.length === 0 ? 0 : (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get pageEnd(): number {
+    return Math.min(this.currentPage * this.pageSize, this.filteredPlatos.length);
+  }
+
   setFilter(filter: { value: string; label: string }): void {
     this.activeFilter = filter.value;
+    this.currentPage = 1;
   }
 
   updateSearch(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.search = input.value;
+    this.currentPage = 1;
+  }
+
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage -= 1;
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage += 1;
+    }
   }
 
   addToCart(item: CartItem & { isPremium?: boolean }): void {

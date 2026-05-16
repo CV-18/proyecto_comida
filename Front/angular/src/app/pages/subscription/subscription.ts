@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PaymentMethod } from '../../models/payment.model';
+import { AuthService } from '../../services/auth.service';
 import { UserService } from '../../services/user.service';
 import { TranslateService } from '../../services/translate.service';
 
@@ -56,10 +57,15 @@ export class Subscription implements OnInit {
 
 	constructor(
 		public userService: UserService,
-		public translateService: TranslateService
+		public translateService: TranslateService,
+		private readonly authService: AuthService
 	) {}
 
 	ngOnInit(): void {
+		if (!this.authService.isLoggedIn()) {
+			return;
+		}
+
 		this.userService.fetchPaymentMethods();
 	}
 
@@ -74,6 +80,11 @@ export class Subscription implements OnInit {
 
 	activatePremium(): void {
 		this.errorMessage.set(null);
+
+		if (!this.authService.isLoggedIn()) {
+			this.errorMessage.set('Necesitas iniciar sesión antes de activar Premium.');
+			return;
+		}
 
 		if (this.userService.paymentMethods().length === 0) {
 			this.errorMessage.set('Necesitas guardar una tarjeta antes de activar Premium.');

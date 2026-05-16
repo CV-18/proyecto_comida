@@ -20,7 +20,7 @@
 <section class="py-10 border-y border-gray-100 bg-white">
 	<div class="max-w-5xl mx-auto px-4 flex justify-center gap-2 flex-wrap">
 		@for (category of categories; track category) {
-			<a routerLink="/platos" class="px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200">
+			<a routerLink="/platos" [queryParams]="{ filter: category }" class="px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200">
 				{{ ('common.countries.' + category.toLowerCase()) | translate }}
 			</a>
 		}

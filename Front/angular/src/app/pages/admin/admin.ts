@@ -20,6 +20,7 @@ export class Admin {
   readonly tipos = ['DESAYUNO', 'ALMUERZO', 'MERIENDA', 'CENA'] as const;
   readonly categorias = ['ENTRANTE', 'PRINCIPAL', 'POSTRE'] as const;
   readonly variantes = ['ESTANDAR', 'SIN_GLUTEN', 'VEGANO', 'PICANTE', 'BAJO_CARBOHIDRATO'] as const;
+  readonly paises = ['ESPANOL', 'ITALIANO', 'MEXICANO', 'JAPONES', 'INDIO', 'GRIEGO'] as const;
 
   platos: PlatoResponse[] = [];
   editingPlatoId: number | null = null;
@@ -29,9 +30,11 @@ export class Admin {
     descripcion: '',
     tipo: 'ALMUERZO',
     categoria: 'PRINCIPAL',
+    pais: 'ESPANOL',
     variante: 'ESTANDAR',
     precio: 0,
     cantidad: 1,
+    isPremium: false,
   };
 
   platoStatus: StatusState = 'idle';
@@ -62,9 +65,11 @@ export class Admin {
       descripcion: plato.descripcion,
       tipo: plato.tipo,
       categoria: plato.categoria,
+      pais: plato.pais,
       variante: plato.variante,
       precio: plato.precio,
       cantidad: plato.cantidad,
+      isPremium: plato.isPremium,
     };
   }
 
@@ -79,9 +84,11 @@ export class Admin {
       descripcion: '',
       tipo: 'ALMUERZO',
       categoria: 'PRINCIPAL',
+      pais: 'ESPANOL',
       variante: 'ESTANDAR',
       precio: 0,
       cantidad: 1,
+      isPremium: false,
     };
   }
 

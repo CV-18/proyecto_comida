@@ -1,10 +1,16 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { map, Observable } from 'rxjs';
+import { forkJoin, map, Observable, of, switchMap } from 'rxjs';
 import { AuthService } from './auth.service';
 
+type PlatoApiResponse = PlatoResponse & {
+  premium?: boolean;
+};
+
 type PlatoListResponse = PlatoResponse[] | {
-  content?: PlatoResponse[];
+  content?: PlatoApiResponse[];
+  totalPages?: number;
+  pageSize?: number;
 };
 
 export interface PlatoResponse {
@@ -13,9 +19,11 @@ export interface PlatoResponse {
   descripcion: string;
   tipo: 'DESAYUNO' | 'ALMUERZO' | 'MERIENDA' | 'CENA';
   categoria: 'ENTRANTE' | 'PRINCIPAL' | 'POSTRE';
+  pais: 'ESPANOL' | 'ITALIANO' | 'MEXICANO' | 'JAPONES' | 'INDIO' | 'GRIEGO';
   variante: 'ESTANDAR' | 'SIN_GLUTEN' | 'VEGANO' | 'PICANTE' | 'BAJO_CARBOHIDRATO';
   precio: number;
   cantidad: number;
+  isPremium: boolean;
 }
 
 export interface PlatoCreateRequest {
@@ -23,9 +31,11 @@ export interface PlatoCreateRequest {
   descripcion: string;
   tipo: PlatoResponse['tipo'];
   categoria: PlatoResponse['categoria'];
+  pais: PlatoResponse['pais'];
   variante: PlatoResponse['variante'];
   precio: number;
   cantidad: number;
+  isPremium?: boolean;
 }
 
 export interface PlatoUpdateRequest {
@@ -33,9 +43,11 @@ export interface PlatoUpdateRequest {
   descripcion?: string;
   tipo?: PlatoResponse['tipo'];
   categoria?: PlatoResponse['categoria'];
+  pais?: PlatoResponse['pais'];
   variante?: PlatoResponse['variante'];
   precio?: number;
   cantidad?: number;
+  isPremium?: boolean;
 }
 
 export interface MenuCreateRequest {
@@ -65,7 +77,35 @@ export class CatalogAdminService {
     return this.http.get<PlatoListResponse>(`${this.API}/platos`, {
       headers: this.getHeaders()
     }).pipe(
-      map((response) => Array.isArray(response) ? response : response.content ?? [])
+      switchMap((response) => {
+        if (Array.isArray(response)) {
+          return of(response.map((plato) => this.normalizePlato(plato)));
+        }
+
+        const firstPage = (response.content ?? []).map((plato) => this.normalizePlato(plato));
+        const totalPages = response.totalPages ?? 1;
+
+        if (totalPages <= 1) {
+          return of(firstPage);
+        }
+
+        const pageSize = response.pageSize ?? (firstPage.length || 10);
+        const requests = Array.from({ length: totalPages - 1 }, (_, index) => {
+          const page = index + 1;
+          return this.http.get<PlatoListResponse>(`${this.API}/platos?page=${page}&size=${pageSize}`, {
+            headers: this.getHeaders()
+          }).pipe(
+            map((pageResponse) => {
+              const pageItems = Array.isArray(pageResponse) ? pageResponse : pageResponse.content ?? [];
+              return pageItems.map((plato) => this.normalizePlato(plato));
+            })
+          );
+        });
+
+        return forkJoin(requests).pipe(
+          map((pages) => [...firstPage, ...pages.flat()])
+        );
+      })
     );
   }
 
@@ -91,5 +131,12 @@ export class CatalogAdminService {
     return this.http.post(`${this.API}/menus`, payload, {
       headers: this.getHeaders()
     });
+  }
+
+  private normalizePlato(plato: PlatoApiResponse): PlatoResponse {
+    return {
+      ...plato,
+      isPremium: plato.isPremium ?? plato.premium ?? false,
+    };
   }
 }

@@ -103,10 +103,12 @@ export class UserService {
   }
 
   logout(): void {
+    this.authService.removeToken();
     this.isLoggedIn.set(false);
     this.isPremium.set(false);
     this.premiumExpira.set(null);
     this.roles.set([]);
+    this.user.set(null);
     // clear sensitive user data
     this.paymentMethods.set([]);
     this.defaultPaymentId.set(null);
