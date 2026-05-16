@@ -6,6 +6,15 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const token = authService.getToken();
 
+  const isPlatosReadRequest = req.method === 'GET' && (
+    req.url.includes('/v1/platos') ||
+    req.url.includes('/v1/admin/platos')
+  );
+
+  if (isPlatosReadRequest) {
+    return next(req);
+  }
+
   if (token) {
     const cloned = req.clone({
       setHeaders: {

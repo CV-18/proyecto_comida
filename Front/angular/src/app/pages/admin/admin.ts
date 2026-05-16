@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -18,8 +18,10 @@ export class Admin {
   readonly categorias = ['ENTRANTE', 'PRINCIPAL', 'POSTRE'] as const;
   readonly variantes  = ['ESTANDAR', 'SIN_GLUTEN', 'VEGANO', 'PICANTE', 'BAJO_CARBOHIDRATO'] as const;
   readonly paises     = ['ESPANOL', 'ITALIANO', 'MEXICANO', 'JAPONES', 'INDIO', 'GRIEGO'] as const;
+  readonly paisesFiltro = ['TODOS', ...this.paises] as const;
 
   platos: PlatoResponse[] = [];
+  selectedPais: (typeof this.paisesFiltro)[number] = 'TODOS';
   editingPlatoId: number | null = null;
   modalOpen = false;
   deleteTarget: PlatoResponse | null = null;
@@ -33,18 +35,38 @@ export class Admin {
     return this.platos.filter(p => p.isPremium).length;
   }
 
+  get filteredPlatos(): PlatoResponse[] {
+    return this.platos.filter((plato) => this.selectedPais === 'TODOS' || plato.pais === this.selectedPais);
+  }
+
   constructor(
     private readonly catalogAdminService: CatalogAdminService,
     public readonly authService: AuthService,
+    private readonly cdr: ChangeDetectorRef,
   ) {
-    this.loadPlatos();
+    void this.loadPlatos();
   }
 
-  loadPlatos(): void {
-    this.catalogAdminService.listPlatos().subscribe({
-      next:  (platos) => { this.platos = platos; },
-      error: ()       => { this.platos = []; },
-    });
+  async loadPlatos(): Promise<void> {
+    this.platoStatus = 'saving';
+    this.platoMessage = '';
+
+    try {
+      this.platos = await this.fetchAllPlatos();
+      this.platoStatus = 'idle';
+      this.cdr.detectChanges();
+    } catch (error) {
+      this.platos = [];
+      this.platoStatus = 'error';
+      this.platoMessage = this.extractErrorMessage(error, 'No se pudieron cargar los platos.');
+      this.cdr.detectChanges();
+    }
+  }
+
+  setPaisFilter(value: string): void {
+    if (this.paisesFiltro.includes(value as (typeof this.paisesFiltro)[number])) {
+      this.selectedPais = value as (typeof this.paisesFiltro)[number];
+    }
   }
 
   openCreateModal(): void {
@@ -179,4 +201,45 @@ export class Admin {
   startEditPlato(plato: PlatoResponse): void { this.openEditModal(plato); }
   cancelEditPlato(): void { this.closeModal(); }
   deletePlato(plato: PlatoResponse): void { this.confirmDelete(plato); }
+
+  private async fetchAllPlatos(): Promise<PlatoResponse[]> {
+    const firstPage = await this.fetchPlatosPage('/v1/platos');
+    if (firstPage.totalPages <= 1) {
+      return firstPage.items;
+    }
+
+    const pageRequests = Array.from({ length: firstPage.totalPages - 1 }, (_, index) => {
+      const page = index + 1;
+      return this.fetchPlatosPage(`/v1/platos?page=${page}&size=${firstPage.pageSize}`);
+    });
+
+    const rest = await Promise.all(pageRequests);
+    return [...firstPage.items, ...rest.flatMap((page) => page.items)];
+  }
+
+  private async fetchPlatosPage(url: string): Promise<{ items: PlatoResponse[]; totalPages: number; pageSize: number }> {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`HTTP_${response.status}`);
+    }
+
+    const data = await response.json() as {
+      content?: PlatoResponse[];
+      totalPages?: number;
+      pageSize?: number;
+      size?: number;
+    };
+
+    const items = (data.content ?? []).map((plato) => ({
+      ...plato,
+      isPremium: plato.isPremium ?? false,
+    }));
+
+    return {
+      items,
+      totalPages: Math.max(1, Number(data.totalPages ?? 1) || 1),
+      pageSize: Math.max(1, Number(data.pageSize ?? data.size ?? (items.length || 10)) || 10),
+    };
+  }
 }
