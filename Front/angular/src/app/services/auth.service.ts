@@ -1,5 +1,3 @@
-// src/app/services/auth.service.ts
-
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -58,14 +56,12 @@ export class AuthService {
     return !!this.getToken();
   }
 
-  // Decodifica el payload del JWT (sin librería externa)
   private decodeToken(): Record<string, any> | null {
     const token = this.getToken();
     if (!token) return null;
 
     try {
       const payload = token.split('.')[1];
-      // atob no entiende base64url, hay que convertir
       const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
       return JSON.parse(atob(base64));
     } catch {
@@ -77,26 +73,29 @@ export class AuthService {
     const payload = this.decodeToken();
     if (!payload) return false;
 
-    // Spring Security puede meter los roles en varios campos
-    const rolesChecks = [
-      payload['roles'],
-      payload['authorities'],
-      payload['ROLE_ADMIN'],
-      (payload['scope'] as string)?.split?.(' '),
-    ];
+    // El back mete los roles como array de strings: ["ROLE_ADMIN"]
+    const roles = payload['roles'];
+    if (Array.isArray(roles)) {
+      return roles.some((r: any) =>
+        r === 'ROLE_ADMIN' ||
+        r === 'ADMIN' ||
+        // Por si llega como objeto { authority: 'ROLE_ADMIN' }
+        (typeof r === 'object' && r !== null && (r['authority'] === 'ROLE_ADMIN' || r['authority'] === 'ADMIN'))
+      );
+    }
 
-    for (const rolesValue of rolesChecks) {
-      if (Array.isArray(rolesValue)) {
-        if (rolesValue.includes('ROLE_ADMIN') || rolesValue.includes('admin')) {
-          return true;
-        }
-      }
+    // Fallback: authorities como array de objetos Spring Security
+    const authorities = payload['authorities'];
+    if (Array.isArray(authorities)) {
+      return authorities.some((a: any) =>
+        a === 'ROLE_ADMIN' ||
+        (typeof a === 'object' && a !== null && (a['authority'] === 'ROLE_ADMIN' || a['authority'] === 'ADMIN'))
+      );
     }
 
     return false;
   }
 
-  // Debug method to inspect token content
   getTokenDebugInfo(): Record<string, any> | null {
     return this.decodeToken();
   }

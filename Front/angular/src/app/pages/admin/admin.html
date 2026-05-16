@@ -1,12 +1,14 @@
 <section class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(251,146,60,0.14),_transparent_38%),linear-gradient(180deg,_#fff7ed_0%,_#ffffff_36%)] px-4 py-10 sm:px-6 lg:px-8">
 	<div class="mx-auto max-w-7xl">
+
+		<!-- Header -->
 		<div class="mb-8 flex flex-col gap-4 rounded-[2rem] border border-orange-100 bg-white/90 p-6 shadow-[0_25px_80px_-40px_rgba(15,23,42,0.35)] backdrop-blur">
 			<div class="flex flex-wrap items-start justify-between gap-4">
 				<div>
 					<p class="text-sm font-semibold uppercase tracking-[0.2em] text-orange-500">Panel privado</p>
-					<h1 class="mt-2 text-3xl font-black tracking-tight text-gray-950 sm:text-4xl">Administrador de catalogo</h1>
+					<h1 class="mt-2 text-3xl font-black tracking-tight text-gray-950 sm:text-4xl">Administrador de catálogo</h1>
 					<p class="mt-3 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
-						Desde aqui solo los administradores pueden crear, editar y borrar platos, y enviarlos al backend para que se guarden en la base de datos.
+						Desde aquí solo los administradores pueden crear, editar y borrar platos en la base de datos.
 					</p>
 				</div>
 				<a routerLink="/" class="inline-flex items-center justify-center rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700">
@@ -14,176 +16,257 @@
 				</a>
 			</div>
 
-			<div class="flex flex-wrap gap-3">
-				@for (section of sections; track section.id) {
-					<a [routerLink]="['/admin']" [fragment]="section.id" class="inline-flex items-center gap-2 rounded-full border border-orange-100 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 transition hover:bg-orange-100">
-						{{ section.title }}
-					</a>
-				}
-			</div>
 			<div class="grid gap-3 sm:grid-cols-3">
 				<div class="rounded-2xl border border-orange-100 bg-orange-50/70 p-4">
 					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-orange-500">Acceso</p>
-					<p class="mt-1 text-sm font-semibold text-gray-900">{{ authService.isAdmin() ? 'Administrador verificado' : 'Sesion sin permisos de admin' }}</p>
+					<p class="mt-1 text-sm font-semibold text-gray-900">{{ authService.isAdmin() ? 'Administrador verificado' : 'Sin permisos de admin' }}</p>
 				</div>
 				<div class="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Estado</p>
-					<p class="mt-1 text-sm font-semibold text-gray-900">Alta, edición y borrado de platos</p>
+					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Total platos</p>
+					<p class="mt-1 text-sm font-semibold text-gray-900">{{ platos.length }} platos en catálogo</p>
 				</div>
 				<div class="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Backend</p>
-					<p class="mt-1 text-sm font-semibold text-gray-900">Bearer token obligatorio</p>
-				</div>
-			</div>
-
-			<div class="grid gap-3 md:grid-cols-2">
-				<div class="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Acciones rápidas</p>
-					<div class="mt-3 flex flex-wrap gap-2">
-						<a href="#platos" class="rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white">Nuevo plato</a>
-						<a href="#listado-platos" class="rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white">Editar plato</a>
-					</div>
-				</div>
-				<div class="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Alcance actual</p>
-					<p class="mt-1 text-sm font-semibold text-gray-900">CRUD completo de platos desde el panel privado</p>
+					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Premium</p>
+					<p class="mt-1 text-sm font-semibold text-gray-900">{{ premiumCount }} platos premium</p>
 				</div>
 			</div>
 		</div>
 
-		<div id="listado-platos" class="mb-6 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-lg shadow-gray-900/5">
-			<div class="flex items-center justify-between gap-4">
-				<div>
-					<p class="text-sm font-semibold uppercase tracking-[0.18em] text-orange-500">Listado de platos</p>
-					<h2 class="mt-1 text-2xl font-bold text-gray-950">Editar o borrar platos existentes</h2>
-				</div>
-				<button type="button" (click)="loadPlatos()" class="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Recargar</button>
+		<!-- Toolbar -->
+		<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+			<div>
+				<h2 class="text-xl font-bold text-gray-950">Catálogo de platos</h2>
+				<p class="text-sm text-gray-500">Gestiona todos los platos del restaurante</p>
 			</div>
+			<div class="flex gap-3">
+				<button type="button" (click)="loadPlatos()" class="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+					↻ Recargar
+				</button>
+				<button type="button" (click)="openCreateModal()" class="rounded-full bg-gray-950 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-600 transition">
+					+ Nuevo plato
+				</button>
+			</div>
+		</div>
 
+		<!-- Mensaje de estado global -->
+		@if (platoMessage) {
+			<div class="mb-4 rounded-2xl border px-4 py-3 text-sm font-medium" [class]="badgeClass(platoStatus)">
+				{{ platoMessage }}
+			</div>
+		}
+
+		<!-- Tabla de platos -->
+		<div class="rounded-[2rem] border border-gray-100 bg-white shadow-lg shadow-gray-900/5 overflow-hidden">
 			@if (platos.length === 0) {
-				<p class="mt-4 text-sm text-gray-500">No hay platos cargados desde el backend.</p>
+				<div class="px-6 py-16 text-center">
+					<p class="text-4xl mb-3">🍽️</p>
+					<p class="font-semibold text-gray-700">No hay platos en el catálogo</p>
+					<p class="text-sm text-gray-400 mt-1">Crea el primero pulsando "Nuevo plato"</p>
+				</div>
 			} @else {
-				<div class="mt-5 grid gap-4 lg:grid-cols-2">
-					@for (plato of platos; track plato.id) {
-						<article class="rounded-2xl border border-gray-100 bg-gray-50 p-5">
-							<div class="flex items-start justify-between gap-4">
-								<div>
-									<p class="text-xs font-semibold uppercase tracking-wide text-orange-500">#{{ plato.id }}</p>
-									<h3 class="mt-1 text-lg font-bold text-gray-950">{{ plato.nombre }}</h3>
-									<p class="mt-1 text-sm text-gray-600">{{ plato.descripcion }}</p>
-								</div>
-								<div class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
-									{{ plato.tipo }}
-								</div>
-							</div>
-							<div class="mt-4 flex flex-wrap gap-2 text-xs text-gray-600">
-								<span class="rounded-full bg-white px-3 py-1">{{ plato.categoria }}</span>
-								<span class="rounded-full bg-white px-3 py-1">{{ plato.variante }}</span>
-								<span class="rounded-full bg-white px-3 py-1">Precio: {{ plato.precio }}</span>
-								<span class="rounded-full bg-white px-3 py-1">Cantidad: {{ plato.cantidad }}</span>
-							</div>
-							<div class="mt-4 flex gap-2">
-								<button type="button" class="rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white" (click)="startEditPlato(plato)">Editar</button>
-								<button type="button" class="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700" (click)="deletePlato(plato)">Borrar</button>
-							</div>
-						</article>
-					}
+				<div class="overflow-x-auto">
+					<table class="w-full text-sm">
+						<thead>
+							<tr class="border-b border-gray-100 bg-gray-50">
+								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">#</th>
+								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Nombre</th>
+								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">País</th>
+								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Categoría</th>
+								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Tipo</th>
+								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Variante</th>
+								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Precio</th>
+								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Stock</th>
+								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Premium</th>
+								<th class="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Acciones</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-50">
+							@for (plato of platos; track plato.id) {
+								<tr class="hover:bg-orange-50/40 transition-colors">
+									<td class="px-5 py-4 text-xs text-gray-400 font-mono">{{ plato.id }}</td>
+									<td class="px-5 py-4">
+										<p class="font-semibold text-gray-900">{{ plato.nombre }}</p>
+										<p class="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{{ plato.descripcion }}</p>
+									</td>
+									<td class="px-5 py-4">
+										<span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">{{ plato.pais }}</span>
+									</td>
+									<td class="px-5 py-4">
+										<span class="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700">{{ plato.categoria }}</span>
+									</td>
+									<td class="px-5 py-4 text-xs text-gray-600">{{ plato.tipo }}</td>
+									<td class="px-5 py-4 text-xs text-gray-600">{{ plato.variante }}</td>
+									<td class="px-5 py-4 font-semibold text-gray-900">{{ plato.precio | currency:'EUR' }}</td>
+									<td class="px-5 py-4 text-gray-600">{{ plato.cantidad }}</td>
+									<td class="px-5 py-4">
+										@if (plato.isPremium) {
+											<span class="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">⭐ Premium</span>
+										} @else {
+											<span class="text-xs text-gray-400">—</span>
+										}
+									</td>
+									<td class="px-5 py-4">
+										<div class="flex items-center justify-end gap-2">
+											<button type="button" (click)="openEditModal(plato)" class="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 transition">
+												Editar
+											</button>
+											<button type="button" (click)="confirmDelete(plato)" class="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition">
+												Borrar
+											</button>
+										</div>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
 				</div>
 			}
 		</div>
+	</div>
+</section>
 
-		<div class="grid gap-6">
-			<article id="platos" class="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-lg shadow-gray-900/5">
-				<div class="mb-6 flex items-center justify-between gap-4">
-					<div>
-						<p class="text-sm font-semibold uppercase tracking-[0.18em] text-orange-500">{{ editingPlatoId === null ? 'Nuevo plato' : 'Editar plato' }}</p>
-						<h2 class="mt-1 text-2xl font-bold text-gray-950">{{ editingPlatoId === null ? 'Crear plato' : 'Modificar plato' }}</h2>
-					</div>
-					<span class="rounded-full border px-3 py-1 text-xs font-semibold" [class]="badgeClass(platoStatus)">
-						{{ platoStatus === 'idle' ? 'Esperando datos' : platoStatus === 'saving' ? 'Guardando...' : platoStatus === 'success' ? 'Guardado' : 'Error' }}
-					</span>
+<!-- ===== MODAL CREAR / EDITAR ===== -->
+@if (modalOpen) {
+	<div class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+		<button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" (click)="closeModal()" aria-label="Cerrar"></button>
+
+		<div class="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[2rem] border border-gray-100 bg-white shadow-2xl">
+			<!-- Modal header -->
+			<div class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-gray-100 bg-white px-6 py-5">
+				<div>
+					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-orange-500">{{ editingPlatoId === null ? 'Nuevo plato' : 'Editar plato #' + editingPlatoId }}</p>
+					<h2 class="mt-1 text-xl font-bold text-gray-950">{{ editingPlatoId === null ? 'Crear plato' : 'Modificar plato' }}</h2>
 				</div>
+				<button type="button" (click)="closeModal()" class="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">✕ Cerrar</button>
+			</div>
 
+			<!-- Modal body -->
+			<div class="p-6">
 				<form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="savePlato()">
+
+					<!-- Nombre -->
 					<label class="sm:col-span-2">
-						<span class="mb-2 block text-sm font-medium text-gray-700">Nombre</span>
-						<input [(ngModel)]="platoForm.nombre" name="platoName" type="text" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400" placeholder="Wagyu A5 con trufa" />
+						<span class="mb-2 block text-sm font-semibold text-gray-700">Nombre <span class="text-red-500">*</span></span>
+						<input [(ngModel)]="platoForm.nombre" name="platoName" type="text" required
+							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+							placeholder="Ej: Paella Valenciana" />
 					</label>
 
+					<!-- Tipo -->
 					<label>
-						<span class="mb-2 block text-sm font-medium text-gray-700">Tipo</span>
-						<select [(ngModel)]="platoForm.tipo" name="platoTipo" class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400">
+						<span class="mb-2 block text-sm font-semibold text-gray-700">Tipo</span>
+						<select [(ngModel)]="platoForm.tipo" name="platoTipo"
+							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400">
 							@for (tipo of tipos; track tipo) {
 								<option [value]="tipo">{{ tipo }}</option>
 							}
 						</select>
 					</label>
 
+					<!-- Categoría -->
 					<label>
-						<span class="mb-2 block text-sm font-medium text-gray-700">Categoría</span>
-						<select [(ngModel)]="platoForm.categoria" name="platoCategoria" class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400">
+						<span class="mb-2 block text-sm font-semibold text-gray-700">Categoría</span>
+						<select [(ngModel)]="platoForm.categoria" name="platoCategoria"
+							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400">
 							@for (categoria of categorias; track categoria) {
 								<option [value]="categoria">{{ categoria }}</option>
 							}
 						</select>
 					</label>
 
+					<!-- País -->
 					<label>
-						<span class="mb-2 block text-sm font-medium text-gray-700">Variante</span>
-						<select [(ngModel)]="platoForm.variante" name="platoVariante" class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400">
-							@for (variante of variantes; track variante) {
-								<option [value]="variante">{{ variante }}</option>
-							}
-						</select>
-					</label>
-
-					<label>
-						<span class="mb-2 block text-sm font-medium text-gray-700">País</span>
-						<select [(ngModel)]="platoForm.pais" name="platoPais" class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400">
+						<span class="mb-2 block text-sm font-semibold text-gray-700">País</span>
+						<select [(ngModel)]="platoForm.pais" name="platoPais"
+							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400">
 							@for (pais of paises; track pais) {
 								<option [value]="pais">{{ pais }}</option>
 							}
 						</select>
 					</label>
 
-					<label class="flex items-center gap-3 rounded-2xl border border-gray-200 px-4 py-3 sm:col-span-2">
-						<input [(ngModel)]="platoForm.isPremium" name="platoPremium" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400" />
+					<!-- Variante -->
+					<label>
+						<span class="mb-2 block text-sm font-semibold text-gray-700">Variante</span>
+						<select [(ngModel)]="platoForm.variante" name="platoVariante"
+							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400">
+							@for (variante of variantes; track variante) {
+								<option [value]="variante">{{ variante }}</option>
+							}
+						</select>
+					</label>
+
+					<!-- Precio -->
+					<label>
+						<span class="mb-2 block text-sm font-semibold text-gray-700">Precio (€) <span class="text-red-500">*</span></span>
+						<input [(ngModel)]="platoForm.precio" name="platoPrecio" type="number" min="0" step="0.01" required
+							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400"
+							placeholder="19.95" />
+					</label>
+
+					<!-- Cantidad -->
+					<label>
+						<span class="mb-2 block text-sm font-semibold text-gray-700">Stock (cantidad)</span>
+						<input [(ngModel)]="platoForm.cantidad" name="platoCantidad" type="number" min="0" step="1"
+							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400" />
+					</label>
+
+					<!-- Descripción -->
+					<label class="sm:col-span-2">
+						<span class="mb-2 block text-sm font-semibold text-gray-700">Descripción <span class="text-red-500">*</span></span>
+						<textarea [(ngModel)]="platoForm.descripcion" name="platoDescripcion" rows="3" required
+							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400 resize-none"
+							placeholder="Describe el plato para la ficha pública"></textarea>
+					</label>
+
+					<!-- Premium -->
+					<label class="sm:col-span-2 flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 cursor-pointer hover:border-amber-300 hover:bg-amber-50 transition">
+						<input [(ngModel)]="platoForm.isPremium" name="platoPremium" type="checkbox"
+							class="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400" />
 						<div>
-							<span class="block text-sm font-medium text-gray-700">Plato premium</span>
-							<p class="text-xs text-gray-500">Actívalo para que el plato aparezca como premium en los filtros públicos.</p>
+							<span class="block text-sm font-semibold text-gray-700">⭐ Plato premium</span>
+							<p class="text-xs text-gray-500">Solo visible para usuarios con suscripción premium.</p>
 						</div>
 					</label>
 
-					<label class="sm:col-span-2">
-						<span class="mb-2 block text-sm font-medium text-gray-700">Descripcion</span>
-						<textarea [(ngModel)]="platoForm.descripcion" name="platoDescripcion" rows="4" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400" placeholder="Describe el plato para la ficha publica"></textarea>
-					</label>
-
-					<label>
-						<span class="mb-2 block text-sm font-medium text-gray-700">Precio</span>
-						<input [(ngModel)]="platoForm.precio" name="platoPrecio" type="number" min="0" step="0.01" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400" placeholder="19.95" />
-					</label>
-
-					<label>
-						<span class="mb-2 block text-sm font-medium text-gray-700">Cantidad</span>
-						<input [(ngModel)]="platoForm.cantidad" name="platoCantidad" type="number" min="0" step="1" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400" />
-					</label>
-
-					<div class="sm:col-span-2 flex flex-col gap-3">
-						<button type="submit" class="inline-flex items-center justify-center rounded-full bg-gray-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70">
-							{{ editingPlatoId === null ? 'Guardar plato' : 'Actualizar plato' }}
+					<!-- Botones -->
+					<div class="sm:col-span-2 flex flex-col gap-3 pt-2">
+						<button type="submit" [disabled]="platoStatus === 'saving'"
+							class="w-full rounded-full bg-gray-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60">
+							{{ platoStatus === 'saving' ? 'Guardando...' : editingPlatoId === null ? '✓ Crear plato' : '✓ Guardar cambios' }}
 						</button>
-						@if (editingPlatoId !== null) {
-							<button type="button" class="inline-flex items-center justify-center rounded-full border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50" (click)="cancelEditPlato()">
-								Cancelar edición
-							</button>
-						}
-						@if (platoMessage) {
-							<p class="rounded-2xl border px-4 py-3 text-sm" [class]="badgeClass(platoStatus)">{{ platoMessage }}</p>
-						}
+						<button type="button" (click)="closeModal()"
+							class="w-full rounded-full border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+							Cancelar
+						</button>
 					</div>
 				</form>
-			</article>
+			</div>
 		</div>
 	</div>
-</section>
+}
+
+<!-- ===== MODAL CONFIRMAR BORRADO ===== -->
+@if (deleteTarget) {
+	<div class="fixed inset-0 z-50 flex items-center justify-center px-4">
+		<button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" (click)="cancelDelete()" aria-label="Cerrar"></button>
+		<div class="relative z-10 w-full max-w-sm rounded-[2rem] border border-gray-100 bg-white p-6 shadow-2xl">
+			<div class="text-center">
+				<p class="text-4xl mb-3">🗑️</p>
+				<h3 class="text-lg font-bold text-gray-950">¿Borrar este plato?</h3>
+				<p class="mt-2 text-sm text-gray-500">
+					Vas a eliminar <strong>{{ deleteTarget.nombre }}</strong> de la base de datos. Esta acción no se puede deshacer.
+				</p>
+			</div>
+			<div class="mt-6 flex gap-3">
+				<button type="button" (click)="cancelDelete()" class="flex-1 rounded-full border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+					Cancelar
+				</button>
+				<button type="button" (click)="executeDelete()" [disabled]="platoStatus === 'saving'"
+					class="flex-1 rounded-full bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-60">
+					{{ platoStatus === 'saving' ? 'Borrando...' : 'Sí, borrar' }}
+				</button>
+			</div>
+		</div>
+	</div>
+}

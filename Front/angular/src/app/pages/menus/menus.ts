@@ -51,19 +51,19 @@ const dishImages = [
 export class Menus implements OnInit {
   readonly pageSize = 10;
   readonly countries: CountryOption[] = [
-    { value: 'Todos', label: 'Todos los países', description: 'Solo para usuarios premium' },
-    { value: 'Espanol', label: 'Español', description: 'Sabores clásicos y recetas mediterráneas' },
-    { value: 'Mexicano', label: 'Mexicano', description: 'Toques intensos, frescos y especiados' },
-    { value: 'Italiano', label: 'Italiano', description: 'Pasta, risotto y cocina de horno' },
-    { value: 'Japones', label: 'Japonés', description: 'Ligero, elegante y muy visual' },
-    { value: 'Indio', label: 'Indio', description: 'Especias, aroma y mucho contraste' },
-    { value: 'Griego', label: 'Griego', description: 'Cocina fresca, colorida y equilibrada' },
+    { value: 'Todos',    label: 'Todos los países', description: 'Solo para usuarios premium' },
+    { value: 'Espanol',  label: 'Español',           description: 'Sabores clásicos y recetas mediterráneas' },
+    { value: 'Mexicano', label: 'Mexicano',           description: 'Toques intensos, frescos y especiados' },
+    { value: 'Italiano', label: 'Italiano',           description: 'Pasta, risotto y cocina de horno' },
+    { value: 'Japones',  label: 'Japonés',            description: 'Ligero, elegante y muy visual' },
+    { value: 'Indio',    label: 'Indio',              description: 'Especias, aroma y mucho contraste' },
+    { value: 'Griego',   label: 'Griego',             description: 'Cocina fresca, colorida y equilibrada' },
   ];
 
   readonly slots: MenuSlot[] = [
-    { id: 'entrada', title: 'Primer plato', subtitle: 'Elige un entrante o plato ligero', allowedCategories: ['ENTRANTE', 'PRINCIPAL'] },
-    { id: 'principal', title: 'Segundo plato', subtitle: 'Elige un plato principal', allowedCategories: ['PRINCIPAL'] },
-    { id: 'postre', title: 'Tercer plato', subtitle: 'Solo postres', allowedCategories: ['POSTRE'] },
+    { id: 'entrada',   title: 'Primer plato',   subtitle: 'Elige un entrante o plato ligero', allowedCategories: ['ENTRANTE', 'PRINCIPAL'] },
+    { id: 'principal', title: 'Segundo plato',  subtitle: 'Elige un plato principal',         allowedCategories: ['PRINCIPAL'] },
+    { id: 'postre',    title: 'Tercer plato',   subtitle: 'Solo postres',                     allowedCategories: ['POSTRE'] },
   ];
 
   activeCategory: MenuScope = 'Espanol';
@@ -82,8 +82,8 @@ export class Menus implements OnInit {
     private readonly catalogService: CatalogService,
     private readonly cart: CartService,
     public userService: UserService,
-    public translateService: TranslateService
-    , private readonly cdr: ChangeDetectorRef
+    public translateService: TranslateService,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -118,10 +118,7 @@ export class Menus implements OnInit {
   }
 
   get filteredModalDishes(): MenuDish[] {
-    if (!this.currentSlot) {
-      return [];
-    }
-
+    if (!this.currentSlot) return [];
     return this.availableDishes.filter((dish) => this.currentSlot?.allowedCategories.includes(dish.categoria));
   }
 
@@ -173,12 +170,11 @@ export class Menus implements OnInit {
     switch (pais) {
       case 'ITALIANO': return 'Italiano';
       case 'MEXICANO': return 'Mexicano';
-      case 'JAPONES': return 'Japones';
-      case 'INDIO': return 'Indio';
-      case 'GRIEGO': return 'Griego';
+      case 'JAPONES':  return 'Japones';
+      case 'INDIO':    return 'Indio';
+      case 'GRIEGO':   return 'Griego';
       case 'ESPANOL':
-      default:
-        return 'Espanol';
+      default:         return 'Espanol';
     }
   }
 
@@ -195,19 +191,13 @@ export class Menus implements OnInit {
       this.errorMessage = 'El modo Todos los países está disponible solo para usuarios premium.';
       return;
     }
-
     this.activeCategory = category;
-    this.selectedDishBySlot = {
-      entrada: null,
-      principal: null,
-      postre: null,
-    };
+    this.selectedDishBySlot = { entrada: null, principal: null, postre: null };
     this.errorMessage = '';
     this.closeModal();
   }
 
   openSlot(slotId: MenuSlotId): void {
-    console.log('openSlot called with:', slotId);
     this.activeSlot = slotId;
     this.modalPage = 1;
     this.errorMessage = '';
@@ -227,32 +217,29 @@ export class Menus implements OnInit {
   }
 
   previousModalPage(): void {
-    if (this.modalPage > 1) {
-      this.modalPage -= 1;
-    }
+    if (this.modalPage > 1) this.modalPage -= 1;
   }
 
   nextModalPage(): void {
-    if (this.modalPage < this.totalModalPages) {
-      this.modalPage += 1;
-    }
+    if (this.modalPage < this.totalModalPages) this.modalPage += 1;
   }
 
   selectDish(dish: MenuDish): void {
-    if (!this.activeSlot) {
-      return;
-    }
+    if (!this.activeSlot) return;
 
     if (dish.isPremium && !this.userService.isPremium()) {
       this.errorMessage = 'Los platos premium solo están disponibles para usuarios premium.';
       return;
     }
 
-    this.selectedDishBySlot = {
-      ...this.selectedDishBySlot,
-      [this.activeSlot]: dish,
-    };
+    this.selectedDishBySlot = { ...this.selectedDishBySlot, [this.activeSlot]: dish };
     this.closeModal();
+  }
+
+  /** Elimina el plato seleccionado de un slot */
+  removeDish(slotId: MenuSlotId): void {
+    this.selectedDishBySlot = { ...this.selectedDishBySlot, [slotId]: null };
+    this.errorMessage = '';
   }
 
   addMenuToCart(): void {
@@ -261,14 +248,9 @@ export class Menus implements OnInit {
       return;
     }
 
-    const entrada = this.selectedDishBySlot.entrada;
-    const principal = this.selectedDishBySlot.principal;
-    const postre = this.selectedDishBySlot.postre;
-
-    if (!entrada || !principal || !postre) {
-      this.errorMessage = 'Selecciona un plato en cada card para crear el menú.';
-      return;
-    }
+    const entrada = this.selectedDishBySlot.entrada!;
+    const principal = this.selectedDishBySlot.principal!;
+    const postre = this.selectedDishBySlot.postre!;
 
     const menuItem: CartItem = {
       id: `menu-${this.activeCategory.toLowerCase()}-${entrada.id}-${principal.id}-${postre.id}`,
@@ -280,28 +262,20 @@ export class Menus implements OnInit {
     };
 
     this.cart.addItem(menuItem);
-    this.selectedDishBySlot = {
-      entrada: null,
-      principal: null,
-      postre: null,
-    };
+    this.selectedDishBySlot = { entrada: null, principal: null, postre: null };
     this.errorMessage = '';
   }
 
   private getCountryLabel(country: MenuScope): string {
-    if (country === 'Todos') {
-      return 'Global';
-    }
-
     switch (country) {
       case 'Italiano': return 'Italiano';
       case 'Mexicano': return 'Mexicano';
-      case 'Japones': return 'Japonés';
-      case 'Indio': return 'Indio';
-      case 'Griego': return 'Griego';
+      case 'Japones':  return 'Japonés';
+      case 'Indio':    return 'Indio';
+      case 'Griego':   return 'Griego';
+      case 'Todos':    return 'Global';
       case 'Espanol':
-      default:
-        return 'Español';
+      default:         return 'Español';
     }
   }
 }
