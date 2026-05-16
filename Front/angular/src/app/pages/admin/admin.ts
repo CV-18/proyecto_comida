@@ -1,10 +1,9 @@
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CatalogAdminService, type PlatoCreateRequest, type PlatoResponse, type PlatoUpdateRequest } from '../../services/catalog-admin.service';
-import { AuthService } from '../../services/auth.service';
 
 type StatusState = 'idle' | 'saving' | 'success' | 'error';
 
@@ -12,73 +11,90 @@ type StatusState = 'idle' | 'saving' | 'success' | 'error';
   selector: 'app-admin',
   imports: [FormsModule, RouterLink, CurrencyPipe],
   templateUrl: './admin.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Admin {
-  readonly tipos      = ['DESAYUNO', 'ALMUERZO', 'MERIENDA', 'CENA'] as const;
-  readonly categorias = ['ENTRANTE', 'PRINCIPAL', 'POSTRE'] as const;
-  readonly variantes  = ['ESTANDAR', 'SIN_GLUTEN', 'VEGANO', 'PICANTE', 'BAJO_CARBOHIDRATO'] as const;
-  readonly paises     = ['ESPANOL', 'ITALIANO', 'MEXICANO', 'JAPONES', 'INDIO', 'GRIEGO'] as const;
+  readonly tipos       = ['DESAYUNO', 'ALMUERZO', 'MERIENDA', 'CENA'] as const;
+  readonly categorias  = ['ENTRANTE', 'PRINCIPAL', 'POSTRE'] as const;
+  readonly variantes   = ['ESTANDAR', 'SIN_GLUTEN', 'VEGANO', 'PICANTE', 'BAJO_CARBOHIDRATO'] as const;
+  readonly paises      = ['ESPANOL', 'ITALIANO', 'MEXICANO', 'JAPONES', 'INDIO', 'GRIEGO'] as const;
   readonly paisesFiltro = ['TODOS', ...this.paises] as const;
 
-  platos: PlatoResponse[] = [];
-  selectedPais: (typeof this.paisesFiltro)[number] = 'TODOS';
-  editingPlatoId: number | null = null;
-  modalOpen = false;
-  deleteTarget: PlatoResponse | null = null;
+  // ── Signals ──────────────────────────────────────────
+  readonly platos      = signal<PlatoResponse[]>([]);
+  readonly selectedPais = signal<(typeof this.paisesFiltro)[number]>('TODOS');
+  readonly modalOpen   = signal(false);
+  readonly deleteTarget = signal<PlatoResponse | null>(null);
+  readonly editingPlatoId = signal<number | null>(null);
+  readonly platoStatus = signal<StatusState>('idle');
+  readonly platoMessage = signal('');
 
+  // ── Computed ─────────────────────────────────────────
+  readonly filteredPlatos = computed(() => {
+    const pais = this.selectedPais();
+    return this.platos().filter(p => pais === 'TODOS' || p.pais === pais);
+  });
+
+  readonly premiumCount = computed(() => this.platos().filter(p => p.isPremium).length);
+
+  // ── Formulario (no necesita signal, ngModel lo gestiona) ──
   platoForm: PlatoCreateRequest = this.emptyForm();
-
-  platoStatus: StatusState = 'idle';
-  platoMessage = '';
-
-  get premiumCount(): number {
-    return this.platos.filter(p => p.isPremium).length;
-  }
-
-  get filteredPlatos(): PlatoResponse[] {
-    return this.platos.filter((plato) => this.selectedPais === 'TODOS' || plato.pais === this.selectedPais);
-  }
 
   constructor(
     private readonly catalogAdminService: CatalogAdminService,
-    public readonly authService: AuthService,
-    private readonly cdr: ChangeDetectorRef,
   ) {
-    void this.loadPlatos();
+    this.loadPlatos();
   }
 
-  async loadPlatos(): Promise<void> {
-    this.platoStatus = 'saving';
-    this.platoMessage = '';
+  // ── Carga inicial ─────────────────────────────────────
+  loadPlatos(): void {
+    this.platoStatus.set('saving');
+    this.platoMessage.set('');
 
-    try {
-      this.platos = await this.fetchAllPlatos();
-      this.platoStatus = 'idle';
-      this.cdr.detectChanges();
-    } catch (error) {
-      this.platos = [];
-      this.platoStatus = 'error';
-      this.platoMessage = this.extractErrorMessage(error, 'No se pudieron cargar los platos.');
-      this.cdr.detectChanges();
-    }
+    this.catalogAdminService.listPlatos().subscribe({
+      next: (platos) => {
+        this.platos.set(platos);
+        this.platoStatus.set('idle');
+      },
+      error: (error) => {
+        this.platoStatus.set('error');
+        this.platoMessage.set(this.extractErrorMessage(error, 'No se pudieron cargar los platos.'));
+      },
+    });
   }
 
+  // ── Filtro ────────────────────────────────────────────
   setPaisFilter(value: string): void {
     if (this.paisesFiltro.includes(value as (typeof this.paisesFiltro)[number])) {
-      this.selectedPais = value as (typeof this.paisesFiltro)[number];
+      this.selectedPais.set(value as (typeof this.paisesFiltro)[number]);
     }
   }
 
-  openCreateModal(): void {
-    this.editingPlatoId = null;
-    this.platoForm = this.emptyForm();
-    this.platoStatus = 'idle';
-    this.platoMessage = '';
-    this.modalOpen = true;
+  formatPais(pais: string): string {
+    switch (pais) {
+      case 'ESPANOL': return 'Español';
+      case 'ITALIANO': return 'Italiano';
+      case 'MEXICANO': return 'Mexicano';
+      case 'JAPONES': return 'Japonés';
+      case 'INDIO': return 'Indio';
+      case 'GRIEGO': return 'Griego';
+      case 'TODOS': return 'Todos';
+      default: return pais;
+    }
   }
 
+  // ── Modal crear ───────────────────────────────────────
+  openCreateModal(): void {
+    this.editingPlatoId.set(null);
+    this.platoForm = this.emptyForm();
+    this.platoStatus.set('idle');
+    this.platoMessage.set('');
+    this.modalOpen.set(true);
+  }
+
+  // ── Modal editar ──────────────────────────────────────
   openEditModal(plato: PlatoResponse): void {
-    this.editingPlatoId = plato.id;
+    this.editingPlatoId.set(plato.id);
     this.platoForm = {
       nombre:      plato.nombre,
       descripcion: plato.descripcion,
@@ -90,23 +106,25 @@ export class Admin {
       cantidad:    plato.cantidad,
       isPremium:   plato.isPremium,
     };
-    this.platoStatus = 'idle';
-    this.platoMessage = '';
-    this.modalOpen = true;
+    this.platoStatus.set('idle');
+    this.platoMessage.set('');
+    this.modalOpen.set(true);
   }
 
   closeModal(): void {
-    this.modalOpen = false;
-    this.editingPlatoId = null;
+    this.modalOpen.set(false);
+    this.editingPlatoId.set(null);
     this.platoForm = this.emptyForm();
-    this.platoMessage = '';
-    this.platoStatus = 'idle';
+    this.platoMessage.set('');
+    this.platoStatus.set('idle');
   }
 
+  // ── Guardar (crear o editar) ──────────────────────────
   savePlato(): void {
-    this.platoStatus = 'saving';
-    this.platoMessage = '';
+    this.platoStatus.set('saving');
+    this.platoMessage.set('');
 
+    const editId = this.editingPlatoId();
     const payload = {
       ...this.platoForm,
       nombre:      this.platoForm.nombre.trim(),
@@ -115,55 +133,85 @@ export class Admin {
       cantidad:    Number(this.platoForm.cantidad),
     };
 
-    const request$ = this.editingPlatoId === null
+    const request$ = editId === null
       ? this.catalogAdminService.createPlato(payload as PlatoCreateRequest)
-      : this.catalogAdminService.updatePlato(this.editingPlatoId, payload as PlatoUpdateRequest);
+      : this.catalogAdminService.updatePlato(editId, payload as PlatoUpdateRequest);
 
     request$.subscribe({
-      next: () => {
-        this.platoStatus = 'success';
-        this.platoMessage = this.editingPlatoId === null
-          ? 'Plato creado correctamente.'
-          : 'Plato actualizado correctamente.';
-        this.loadPlatos();
-        setTimeout(() => this.closeModal(), 1200);
+      next: (saved) => {
+        // Actualiza el signal localmente sin volver a llamar al back
+        if (editId === null) {
+          this.platos.update(prev => [...prev, saved]);
+        } else {
+          this.platos.update(prev =>
+            prev.map(p => p.id === editId ? { ...p, ...saved } : p)
+          );
+        }
+        this.platoStatus.set('success');
+        this.platoMessage.set(editId === null ? 'Plato creado correctamente.' : 'Plato actualizado correctamente.');
+        setTimeout(() => this.closeModal(), 1000);
       },
       error: (error) => {
-        this.platoStatus = 'error';
-        this.platoMessage = this.extractErrorMessage(error, 'No se pudo guardar el plato.');
+        this.platoStatus.set('error');
+        this.platoMessage.set(this.extractErrorMessage(error, 'No se pudo guardar el plato.'));
       },
     });
   }
 
+  // ── Toggle premium rápido desde la tabla ─────────────
+  togglePremium(plato: PlatoResponse): void {
+    const nuevoValor = !plato.isPremium;
+
+    // Actualiza el signal inmediatamente (optimistic update)
+    this.platos.update(prev =>
+      prev.map(p => p.id === plato.id ? { ...p, isPremium: nuevoValor } : p)
+    );
+
+    this.catalogAdminService.updatePlato(plato.id, { isPremium: nuevoValor }).subscribe({
+      error: () => {
+        // Si falla, revierte el cambio
+        this.platos.update(prev =>
+          prev.map(p => p.id === plato.id ? { ...p, isPremium: !nuevoValor } : p)
+        );
+        this.platoMessage.set('No se pudo cambiar el estado premium.');
+        this.platoStatus.set('error');
+      },
+    });
+  }
+
+  // ── Borrado con confirmación ──────────────────────────
   confirmDelete(plato: PlatoResponse): void {
-    this.deleteTarget = plato;
+    this.deleteTarget.set(plato);
   }
 
   cancelDelete(): void {
-    this.deleteTarget = null;
+    this.deleteTarget.set(null);
   }
 
   executeDelete(): void {
-    if (!this.deleteTarget) return;
-    const target = this.deleteTarget;
-    this.platoStatus = 'saving';
+    const target = this.deleteTarget();
+    if (!target) return;
+
+    this.platoStatus.set('saving');
 
     this.catalogAdminService.deletePlato(target.id).subscribe({
       next: () => {
-        this.platoStatus = 'success';
-        this.platoMessage = '"' + target.nombre + '" eliminado correctamente.';
-        this.deleteTarget = null;
-        this.loadPlatos();
-        setTimeout(() => { this.platoMessage = ''; this.platoStatus = 'idle'; }, 3000);
+        // Elimina del signal localmente
+        this.platos.update(prev => prev.filter(p => p.id !== target.id));
+        this.platoStatus.set('success');
+        this.platoMessage.set('"' + target.nombre + '" eliminado correctamente.');
+        this.deleteTarget.set(null);
+        setTimeout(() => { this.platoMessage.set(''); this.platoStatus.set('idle'); }, 3000);
       },
       error: (error) => {
-        this.platoStatus = 'error';
-        this.platoMessage = this.extractErrorMessage(error, 'No se pudo eliminar el plato.');
-        this.deleteTarget = null;
+        this.platoStatus.set('error');
+        this.platoMessage.set(this.extractErrorMessage(error, 'No se pudo eliminar el plato.'));
+        this.deleteTarget.set(null);
       },
     });
   }
 
+  // ── Helpers ───────────────────────────────────────────
   private emptyForm(): PlatoCreateRequest {
     return {
       nombre:      '',
@@ -195,51 +243,5 @@ export class Admin {
     if (state === 'error')   return 'border-rose-200 bg-rose-50 text-rose-700';
     if (state === 'saving')  return 'border-amber-200 bg-amber-50 text-amber-700';
     return 'border-gray-200 bg-gray-50 text-gray-500';
-  }
-
-  // Alias para compatibilidad
-  startEditPlato(plato: PlatoResponse): void { this.openEditModal(plato); }
-  cancelEditPlato(): void { this.closeModal(); }
-  deletePlato(plato: PlatoResponse): void { this.confirmDelete(plato); }
-
-  private async fetchAllPlatos(): Promise<PlatoResponse[]> {
-    const firstPage = await this.fetchPlatosPage('/v1/platos');
-    if (firstPage.totalPages <= 1) {
-      return firstPage.items;
-    }
-
-    const pageRequests = Array.from({ length: firstPage.totalPages - 1 }, (_, index) => {
-      const page = index + 1;
-      return this.fetchPlatosPage(`/v1/platos?page=${page}&size=${firstPage.pageSize}`);
-    });
-
-    const rest = await Promise.all(pageRequests);
-    return [...firstPage.items, ...rest.flatMap((page) => page.items)];
-  }
-
-  private async fetchPlatosPage(url: string): Promise<{ items: PlatoResponse[]; totalPages: number; pageSize: number }> {
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`HTTP_${response.status}`);
-    }
-
-    const data = await response.json() as {
-      content?: PlatoResponse[];
-      totalPages?: number;
-      pageSize?: number;
-      size?: number;
-    };
-
-    const items = (data.content ?? []).map((plato) => ({
-      ...plato,
-      isPremium: plato.isPremium ?? false,
-    }));
-
-    return {
-      items,
-      totalPages: Math.max(1, Number(data.totalPages ?? 1) || 1),
-      pageSize: Math.max(1, Number(data.pageSize ?? data.size ?? (items.length || 10)) || 10),
-    };
   }
 }

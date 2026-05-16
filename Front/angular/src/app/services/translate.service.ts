@@ -552,7 +552,7 @@ const TRANSLATIONS: Record<Lang, any> = {
         italiano: 'Italiano',
         indio: 'Indio',
         griego: 'Griego',
-        espanol: 'Espanol',
+        espanol: 'Español',
         premium: 'Premium',
         todos: 'Todos',
       },

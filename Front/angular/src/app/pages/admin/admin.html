@@ -16,18 +16,14 @@
 				</a>
 			</div>
 
-			<div class="grid gap-3 sm:grid-cols-3">
-				<div class="rounded-2xl border border-orange-100 bg-orange-50/70 p-4">
-					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-orange-500">Acceso</p>
-					<p class="mt-1 text-sm font-semibold text-gray-900">{{ authService.isAdmin() ? 'Administrador verificado' : 'Sin permisos de admin' }}</p>
-				</div>
+			<div class="grid gap-3 sm:grid-cols-2">
 				<div class="rounded-2xl border border-gray-100 bg-gray-50 p-4">
 					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Total platos</p>
-					<p class="mt-1 text-sm font-semibold text-gray-900">{{ platos.length }} platos en catálogo</p>
+					<p class="mt-1 text-sm font-semibold text-gray-900">{{ platos().length }} platos en catálogo</p>
 				</div>
 				<div class="rounded-2xl border border-gray-100 bg-gray-50 p-4">
 					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Premium</p>
-					<p class="mt-1 text-sm font-semibold text-gray-900">{{ premiumCount }} platos premium</p>
+					<p class="mt-1 text-sm font-semibold text-gray-900">{{ premiumCount() }} platos premium</p>
 				</div>
 			</div>
 		</div>
@@ -41,10 +37,10 @@
 			<div class="flex flex-wrap items-center gap-3">
 				<label class="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
 					<span>País</span>
-					<select [(ngModel)]="selectedPais" name="filtroPais" (ngModelChange)="setPaisFilter($event)"
+					<select [ngModel]="selectedPais()" name="filtroPais" (ngModelChange)="setPaisFilter($event)"
 						class="min-w-32 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 outline-none focus:border-orange-400">
 						@for (pais of paisesFiltro; track pais) {
-							<option [value]="pais">{{ pais === 'TODOS' ? 'Todos' : pais }}</option>
+							<option [value]="pais">{{ formatPais(pais) }}</option>
 						}
 					</select>
 				</label>
@@ -58,21 +54,21 @@
 		</div>
 
 		<!-- Mensaje de estado global -->
-		@if (platoMessage) {
-			<div class="mb-4 rounded-2xl border px-4 py-3 text-sm font-medium" [class]="badgeClass(platoStatus)">
-				{{ platoMessage }}
+		@if (platoMessage()) {
+			<div class="mb-4 rounded-2xl border px-4 py-3 text-sm font-medium" [class]="badgeClass(platoStatus())">
+				{{ platoMessage() }}
 			</div>
 		}
 
 		<!-- Tabla de platos -->
 		<div class="rounded-[2rem] border border-gray-100 bg-white shadow-lg shadow-gray-900/5 overflow-hidden">
-			@if (platos.length === 0) {
+			@if (platos().length === 0) {
 				<div class="px-6 py-16 text-center">
 					<p class="text-4xl mb-3">🍽️</p>
 					<p class="font-semibold text-gray-700">No hay platos en el catálogo</p>
 					<p class="text-sm text-gray-400 mt-1">Crea el primero pulsando "Nuevo plato"</p>
 				</div>
-			} @else if (filteredPlatos.length === 0) {
+			} @else if (filteredPlatos().length === 0) {
 				<div class="px-6 py-16 text-center">
 					<p class="text-4xl mb-3">🔎</p>
 					<p class="font-semibold text-gray-700">No hay platos para el país seleccionado</p>
@@ -87,16 +83,15 @@
 								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Nombre</th>
 								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">País</th>
 								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Categoría</th>
-								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Tipo</th>
 								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Variante</th>
 								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Precio</th>
 								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Stock</th>
-								<th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Premium</th>
+								<th class="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">Premium</th>
 								<th class="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Acciones</th>
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-gray-50">
-							@for (plato of filteredPlatos; track plato.id) {
+							@for (plato of filteredPlatos(); track plato.id) {
 								<tr class="group hover:bg-orange-50/40 transition-colors">
 									<td class="px-5 py-4 text-xs text-gray-400 font-mono">{{ plato.id }}</td>
 									<td class="px-5 py-4">
@@ -104,24 +99,29 @@
 										<p class="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{{ plato.descripcion }}</p>
 									</td>
 									<td class="px-5 py-4">
-										<span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">{{ plato.pais }}</span>
+										<span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">{{ formatPais(plato.pais) }}</span>
 									</td>
 									<td class="px-5 py-4">
 										<span class="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700">{{ plato.categoria }}</span>
 									</td>
-									<td class="px-5 py-4 text-xs text-gray-600">{{ plato.tipo }}</td>
 									<td class="px-5 py-4 text-xs text-gray-600">{{ plato.variante }}</td>
 									<td class="px-5 py-4 font-semibold text-gray-900">{{ plato.precio | currency:'EUR' }}</td>
 									<td class="px-5 py-4 text-gray-600">{{ plato.cantidad }}</td>
-									<td class="px-5 py-4">
-										@if (plato.isPremium) {
-											<span class="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">⭐ Premium</span>
-										} @else {
-											<span class="text-xs text-gray-400">—</span>
-										}
+									<!-- Toggle Premium -->
+									<td class="px-5 py-4 text-center">
+										<button
+											type="button"
+											(click)="togglePremium(plato)"
+											[title]="plato.isPremium ? 'Quitar premium' : 'Hacer premium'"
+											class="inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold transition-all"
+											[class]="plato.isPremium
+												? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+												: 'bg-gray-100 text-gray-400 hover:bg-gray-200'">
+											{{ plato.isPremium ? '⭐ Sí' : '— No' }}
+										</button>
 									</td>
 									<td class="px-5 py-4">
-										<div class="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto sm:group-focus-within:opacity-100 sm:group-focus-within:pointer-events-auto transition-opacity duration-200">
+										<div class="flex items-center justify-end gap-2">
 											<button type="button" (click)="openEditModal(plato)" class="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 transition">
 												Editar
 											</button>
@@ -141,25 +141,25 @@
 </section>
 
 <!-- ===== MODAL CREAR / EDITAR ===== -->
-@if (modalOpen) {
+@if (modalOpen()) {
 	<div class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
 		<button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" (click)="closeModal()" aria-label="Cerrar"></button>
-
 		<div class="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[2rem] border border-gray-100 bg-white shadow-2xl">
-			<!-- Modal header -->
 			<div class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-gray-100 bg-white px-6 py-5">
 				<div>
-					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-orange-500">{{ editingPlatoId === null ? 'Nuevo plato' : 'Editar plato #' + editingPlatoId }}</p>
-					<h2 class="mt-1 text-xl font-bold text-gray-950">{{ editingPlatoId === null ? 'Crear plato' : 'Modificar plato' }}</h2>
+					<p class="text-xs font-semibold uppercase tracking-[0.18em] text-orange-500">{{ editingPlatoId() === null ? 'Nuevo plato' : 'Editar plato #' + editingPlatoId() }}</p>
+					<h2 class="mt-1 text-xl font-bold text-gray-950">{{ editingPlatoId() === null ? 'Crear plato' : 'Modificar plato' }}</h2>
 				</div>
 				<button type="button" (click)="closeModal()" class="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">✕ Cerrar</button>
 			</div>
 
-			<!-- Modal body -->
 			<div class="p-6">
+				@if (platoMessage() && platoStatus() === 'error') {
+					<div class="mb-4 rounded-2xl border px-4 py-3 text-sm font-medium" [class]="badgeClass(platoStatus())">
+						{{ platoMessage() }}
+					</div>
+				}
 				<form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="savePlato()">
-
-					<!-- Nombre -->
 					<label class="sm:col-span-2">
 						<span class="mb-2 block text-sm font-semibold text-gray-700">Nombre <span class="text-red-500">*</span></span>
 						<input [(ngModel)]="platoForm.nombre" name="platoName" type="text" required
@@ -167,66 +167,46 @@
 							placeholder="Ej: Paella Valenciana" />
 					</label>
 
-					<!-- Tipo -->
 					<label>
 						<span class="mb-2 block text-sm font-semibold text-gray-700">Tipo</span>
-						<select [(ngModel)]="platoForm.tipo" name="platoTipo"
-							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400">
-							@for (tipo of tipos; track tipo) {
-								<option [value]="tipo">{{ tipo }}</option>
-							}
+						<select [(ngModel)]="platoForm.tipo" name="platoTipo" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400">
+							@for (tipo of tipos; track tipo) { <option [value]="tipo">{{ tipo }}</option> }
 						</select>
 					</label>
 
-					<!-- Categoría -->
 					<label>
 						<span class="mb-2 block text-sm font-semibold text-gray-700">Categoría</span>
-						<select [(ngModel)]="platoForm.categoria" name="platoCategoria"
-							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400">
-							@for (categoria of categorias; track categoria) {
-								<option [value]="categoria">{{ categoria }}</option>
-							}
+						<select [(ngModel)]="platoForm.categoria" name="platoCategoria" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400">
+							@for (categoria of categorias; track categoria) { <option [value]="categoria">{{ categoria }}</option> }
 						</select>
 					</label>
 
-					<!-- País -->
 					<label>
 						<span class="mb-2 block text-sm font-semibold text-gray-700">País</span>
-						<select [(ngModel)]="platoForm.pais" name="platoPais"
-							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400">
-							@for (pais of paises; track pais) {
-								<option [value]="pais">{{ pais }}</option>
-							}
+						<select [(ngModel)]="platoForm.pais" name="platoPais" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400">
+							@for (pais of paises; track pais) { <option [value]="pais">{{ formatPais(pais) }}</option> }
 						</select>
 					</label>
 
-					<!-- Variante -->
 					<label>
 						<span class="mb-2 block text-sm font-semibold text-gray-700">Variante</span>
-						<select [(ngModel)]="platoForm.variante" name="platoVariante"
-							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400">
-							@for (variante of variantes; track variante) {
-								<option [value]="variante">{{ variante }}</option>
-							}
+						<select [(ngModel)]="platoForm.variante" name="platoVariante" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400">
+							@for (variante of variantes; track variante) { <option [value]="variante">{{ variante }}</option> }
 						</select>
 					</label>
 
-					<!-- Precio -->
 					<label>
 						<span class="mb-2 block text-sm font-semibold text-gray-700">Precio (€) <span class="text-red-500">*</span></span>
 						<input [(ngModel)]="platoForm.precio" name="platoPrecio" type="number" min="0" step="0.01" required
-							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400"
-							placeholder="19.95" />
+							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400" placeholder="19.95" />
 					</label>
 
-					<!-- Cantidad -->
 					<label>
 						<span class="mb-2 block text-sm font-semibold text-gray-700">Stock (cantidad)</span>
 						<input [(ngModel)]="platoForm.cantidad" name="platoCantidad" type="number" min="0" step="1"
 							class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-orange-400" />
 					</label>
 
-					<!-- Descripción -->
 					<label class="sm:col-span-2">
 						<span class="mb-2 block text-sm font-semibold text-gray-700">Descripción <span class="text-red-500">*</span></span>
 						<textarea [(ngModel)]="platoForm.descripcion" name="platoDescripcion" rows="3" required
@@ -234,7 +214,6 @@
 							placeholder="Describe el plato para la ficha pública"></textarea>
 					</label>
 
-					<!-- Premium -->
 					<label class="sm:col-span-2 flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 cursor-pointer hover:border-amber-300 hover:bg-amber-50 transition">
 						<input [(ngModel)]="platoForm.isPremium" name="platoPremium" type="checkbox"
 							class="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400" />
@@ -244,11 +223,10 @@
 						</div>
 					</label>
 
-					<!-- Botones -->
 					<div class="sm:col-span-2 flex flex-col gap-3 pt-2">
-						<button type="submit" [disabled]="platoStatus === 'saving'"
+						<button type="submit" [disabled]="platoStatus() === 'saving'"
 							class="w-full rounded-full bg-gray-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60">
-							{{ platoStatus === 'saving' ? 'Guardando...' : editingPlatoId === null ? '✓ Crear plato' : '✓ Guardar cambios' }}
+							{{ platoStatus() === 'saving' ? 'Guardando...' : editingPlatoId() === null ? '✓ Crear plato' : '✓ Guardar cambios' }}
 						</button>
 						<button type="button" (click)="closeModal()"
 							class="w-full rounded-full border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
@@ -262,7 +240,7 @@
 }
 
 <!-- ===== MODAL CONFIRMAR BORRADO ===== -->
-@if (deleteTarget) {
+@if (deleteTarget()) {
 	<div class="fixed inset-0 z-50 flex items-center justify-center px-4">
 		<button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" (click)="cancelDelete()" aria-label="Cerrar"></button>
 		<div class="relative z-10 w-full max-w-sm rounded-[2rem] border border-gray-100 bg-white p-6 shadow-2xl">
@@ -270,16 +248,16 @@
 				<p class="text-4xl mb-3">🗑️</p>
 				<h3 class="text-lg font-bold text-gray-950">¿Borrar este plato?</h3>
 				<p class="mt-2 text-sm text-gray-500">
-					Vas a eliminar <strong>{{ deleteTarget.nombre }}</strong> de la base de datos. Esta acción no se puede deshacer.
+					Vas a eliminar <strong>{{ deleteTarget()!.nombre }}</strong> de la base de datos. Esta acción no se puede deshacer.
 				</p>
 			</div>
 			<div class="mt-6 flex gap-3">
 				<button type="button" (click)="cancelDelete()" class="flex-1 rounded-full border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
 					Cancelar
 				</button>
-				<button type="button" (click)="executeDelete()" [disabled]="platoStatus === 'saving'"
+				<button type="button" (click)="executeDelete()" [disabled]="platoStatus() === 'saving'"
 					class="flex-1 rounded-full bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-60">
-					{{ platoStatus === 'saving' ? 'Borrando...' : 'Sí, borrar' }}
+					{{ platoStatus() === 'saving' ? 'Borrando...' : 'Sí, borrar' }}
 				</button>
 			</div>
 		</div>

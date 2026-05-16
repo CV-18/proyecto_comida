@@ -3,28 +3,6 @@
 		<div class="max-w-6xl mx-auto flex flex-col lg:flex-row gap-6">
 			<aside class="w-full lg:w-72 shrink-0">
 				<div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-					<div class="flex items-center gap-4 mb-6 p-2">
-						<div class="relative w-14 h-14 rounded-full flex items-center justify-center font-bold shrink-0"
-							[class]="userService.isPremium() ? 'bg-linear-to-br from-amber-400 to-orange-500 text-white shadow-md shadow-amber-400/30' : 'bg-orange-100 text-orange-600'">
-							{{ user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) }}
-							@if (userService.isPremium()) {
-								<span class="absolute -top-1 -right-1 w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center border-2 border-white text-white text-[10px]">★</span>
-							}
-						</div>
-						<div>
-							<h2 class="font-heading font-bold text-gray-900">{{ user.name }}</h2>
-							@if (user.username) {
-								<p class="text-xs text-gray-500 mb-0.5">{{ '@' + user.username }}</p>
-							}
-							<p class="text-xs text-gray-400 mb-0.5">{{ user.email }}</p>
-							@if (userService.isPremium()) {
-								<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Premium</span>
-							} @else {
-								<span class="text-xs text-gray-400">Miembro desde {{ user.memberSince }}</span>
-							}
-						</div>
-					</div>
-
 					<nav class="space-y-1 mb-6">
 						<button type="button" (click)="setTab('perfil')" class="w-full flex items-center justify-between p-3.5 rounded-2xl transition-all duration-200"
 							[class]="activeTab === 'perfil' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-600 hover:bg-red-50 hover:text-red-600'">
@@ -41,13 +19,7 @@
 							<span class="flex items-center gap-3 font-medium text-sm">Métodos de pago</span>
 							@if (activeTab === 'pagos') { <span class="text-gray-400">›</span> }
 						</button>
-						@if (userService.isAdminUser()) {
-							<button type="button" (click)="setTab('admin')" class="w-full flex items-center justify-between p-3.5 rounded-2xl transition-all duration-200"
-								[class]="activeTab === 'admin' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-600 hover:bg-red-50 hover:text-red-600'">
-								<span class="flex items-center gap-3 font-medium text-sm">Panel admin</span>
-								@if (activeTab === 'admin') { <span class="text-gray-400">›</span> }
-							</button>
-						}
+
 					</nav>
 
 					@if (!userService.isPremium()) {

@@ -95,13 +95,13 @@ export class Platos {
 
   private mapCountry(pais: PlatoResponse['pais']): string {
     switch (this.normalizeCountry(pais)) {
-      case 'ESPANOL':  return 'Espanol';
+      case 'ESPANOL':  return 'Español';
       case 'ITALIANO': return 'Italiano';
       case 'MEXICANO': return 'Mexicano';
       case 'JAPONES':  return 'Japones';
       case 'INDIO':    return 'Indio';
       case 'GRIEGO':   return 'Griego';
-      default:         return 'Espanol';
+      default:         return 'Español';
     }
   }
 
