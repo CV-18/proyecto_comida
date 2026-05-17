@@ -238,14 +238,7 @@ export class OrderService {
           color: '#d97706',
         },
         {
-          text: 'comidadc@example.com | Tel: +34 900 123 456',
-          fontSize: 10,
-          alignment: 'center',
-          color: '#999',
-          margin: [0, 0, 0, 5],
-        },
-        {
-          text: 'www.comidadc.com',
+          text: 'Comidas Josepehs',
           fontSize: 10,
           alignment: 'center',
           color: '#999',
