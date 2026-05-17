@@ -97,27 +97,33 @@ export class CartDrawer {
 
     this.isProcessing.set(true);
 
-    this.usuarioService.cobrarMetodoPago(chosenId, totalAmount).pipe(
-      switchMap((chargeResult) => {
-        this.userService.updateLocalPaymentBalance(chosenId, chargeResult.saldoDisponible);
+    const orderItems = this.cart.items().map((item) => ({
+      platoId: Number(item.id),
+      name: item.name,
+      quantity: item.quantity,
+    }));
 
-        const orderItems = this.cart.items().map((item) => ({
-          platoId: Number(item.id),
-          name: item.name,
-          quantity: item.quantity,
-        }));
+    const createOrder$ = this.userService.createAndStoreOrder(
+      orderItems,
+      totalAmount,
+      chosenId,
+      {
+        subtotal: this.cart.subtotal(),
+        discount: this.cart.discountAmount(this.userService.isPremium()),
+        shipping: this.cart.shippingFee(),
+      }
+    );
 
-        return this.userService.createAndStoreOrder(
-          orderItems,
-          totalAmount,
-          chosenId,
-          {
-            subtotal: this.cart.subtotal(),
-            discount: this.cart.discountAmount(this.userService.isPremium()),
-            shipping: this.cart.shippingFee(),
-          }
-        );
-      }),
+    const checkout$ = this.userService.isAdminUser()
+      ? createOrder$
+      : this.usuarioService.cobrarMetodoPago(chosenId, totalAmount).pipe(
+        switchMap((chargeResult) => {
+          this.userService.updateLocalPaymentBalance(chosenId, chargeResult.saldoDisponible);
+          return createOrder$;
+        })
+      );
+
+    checkout$.pipe(
       finalize(() => {
         this.isProcessing.set(false);
       })
