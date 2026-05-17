@@ -79,9 +79,9 @@
 
           @if (selectedPaymentId() !== null) {
             <div class="mt-8 border-t pt-6">
-              @if (errorMessage) {
+              @if (errorMessage()) {
                 <div class="mb-4 p-3 rounded-lg bg-red-100 text-red-800">
-                  {{ errorMessage }}
+                  {{ errorMessage() }}
                 </div>
               }
               @if (selectedPayment) {

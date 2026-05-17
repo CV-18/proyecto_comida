@@ -98,7 +98,9 @@ export class CartDrawer {
     this.isProcessing.set(true);
 
     this.usuarioService.cobrarMetodoPago(chosenId, totalAmount).pipe(
-      switchMap(() => {
+      switchMap((chargeResult) => {
+        this.userService.updateLocalPaymentBalance(chosenId, chargeResult.saldoDisponible);
+
         const orderItems = this.cart.items().map((item) => ({
           platoId: Number(item.id),
           name: item.name,

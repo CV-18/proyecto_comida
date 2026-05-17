@@ -1,13 +1,14 @@
-import { Component, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, OnInit, signal, ViewChild } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { PaymentMethod } from '../../models/payment.model';
 import { AuthService } from '../../services/auth.service';
 import { UserService } from '../../services/user.service';
 import { TranslateService } from '../../services/translate.service';
+import { PaymentModal } from '../../components/payment-modal/payment-modal';
 
 @Component({
 	selector: 'app-subscription',
-	imports: [RouterLink],
+	imports: [DatePipe, PaymentModal],
 	templateUrl: './subscription.html',
 })
 export class Subscription implements OnInit {
@@ -17,6 +18,8 @@ export class Subscription implements OnInit {
 	readonly showConfirmation = signal(false);
 	readonly selectedPaymentId = signal<number | null>(null);
 	readonly chargePreview = signal<number>(0);
+
+	@ViewChild('paymentModal') paymentModal?: PaymentModal;
 
 	readonly benefits = [
 		'15% de descuento en todos los pedidos',
@@ -60,6 +63,22 @@ export class Subscription implements OnInit {
 		public translateService: TranslateService,
 		private readonly authService: AuthService
 	) {}
+
+	selectPayment(id: number): void {
+		this.selectedPaymentId.set(id);
+	}
+
+	openPaymentModal(): void {
+		this.paymentModal?.open();
+	}
+
+	get isSubscribing(): boolean {
+		return this.processing();
+	}
+
+	subscribe(): void {
+		this.confirmPremium();
+	}
 
 	ngOnInit(): void {
 		if (!this.authService.isLoggedIn()) {
@@ -118,6 +137,14 @@ export class Subscription implements OnInit {
 		this.processing.set(true);
 		this.userService.subscribePremium(chosenPayment.id).subscribe({
 			next: () => {
+				if (chosenPayment.saldoDisponible !== undefined) {
+					this.userService.updateLocalPaymentBalance(
+						chosenPayment.id,
+						Math.max(0, chosenPayment.saldoDisponible - this.subscriptionPrice)
+					);
+				}
+
+				this.userService.fetchPaymentMethods();
 				this.showConfirmation.set(false);
 				this.processing.set(false);
 				this.errorMessage.set(null);
@@ -125,6 +152,7 @@ export class Subscription implements OnInit {
 			error: (err) => {
 				const errorMsg = err?.error?.message || 'No se pudo completar la suscripción. Por favor, intenta de nuevo.';
 				this.errorMessage.set(errorMsg);
+				this.userService.fetchPaymentMethods();
 				this.showConfirmation.set(false);
 				this.processing.set(false);
 			},

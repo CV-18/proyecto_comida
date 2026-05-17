@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ViewChild } from '@angular/core';
+import { Router } from '@angular/router';
 import { UserService } from '../../services/user.service';
 import { TranslateService } from '../../services/translate.service';
 import { UsuarioService, UsuarioResponse } from '../../services/usuario.service';
@@ -45,7 +46,8 @@ export class Account implements OnInit {
     private readonly usuarioService: UsuarioService,
     private readonly authService: AuthService,
     private readonly catalogService: CatalogService,
-    private readonly cartService: CartService
+    private readonly cartService: CartService,
+    private readonly router: Router
   ) {}
 
   ngOnInit(): void {
@@ -79,6 +81,7 @@ export class Account implements OnInit {
     this.usuarioService.getMe().subscribe({
       next: (usuario) => {
         this.usuario = usuario;
+        this.userService.hydrateCurrentUserIdFromUsuario(usuario);
         this.userService.syncAccessFromUsuario(usuario);
         this.userService.updateUser({
           username: usuario.username,
@@ -93,6 +96,7 @@ export class Account implements OnInit {
         this.userService.isPremium.set(usuario.isSuscriptor ?? false);
         this.userService.premiumExpira.set(usuario.suscripcionExpira ?? null);
         this.userService.fetchPaymentMethods();
+        this.userService.fetchOrders();
       },
       error: (err) => {
         console.error('No se pudo cargar el perfil', err);
@@ -114,6 +118,9 @@ export class Account implements OnInit {
 
   setTab(tab: AccountTab): void {
     this.activeTab = tab;
+    if (tab === 'pedidos') {
+      this.userService.fetchOrders();
+    }
     if (tab !== 'pedidos') {
       this.reorderMessage = '';
     }
@@ -260,5 +267,73 @@ export class Account implements OnInit {
         console.error('No se pudo actualizar el perfil', err);
       }
     });
+  }
+
+  getDisplayName(): string {
+    const fullName = `${this.usuario?.nombre ?? ''} ${this.usuario?.apellidos ?? ''}`.trim();
+    if (fullName.length > 0) {
+      return fullName;
+    }
+
+    return this.userService.user()?.name?.trim() || this.usuario?.username || 'Usuario';
+  }
+
+  getDisplayEmail(): string {
+    return this.usuario?.email || this.userService.user()?.email || 'Sin correo';
+  }
+
+  getMemberSinceLabel(): string {
+    const fromUser = this.userService.user()?.memberSince?.trim();
+    if (fromUser) {
+      return fromUser;
+    }
+
+    const yearFromDate = this.usuario?.suscripcionExpira?.slice(0, 4);
+    return yearFromDate || new Date().getFullYear().toString();
+  }
+
+  getInitials(): string {
+    const source = this.getDisplayName();
+    return source
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'US';
+  }
+
+  getOrderStatusClass(status: Order['status']): string {
+    if (status === 'Entregado') {
+      return 'bg-green-50 text-green-700 border-green-200';
+    }
+
+    if (status === 'Cancelado') {
+      return 'bg-red-50 text-red-700 border-red-200';
+    }
+
+    if (status === 'En camino') {
+      return 'bg-amber-50 text-amber-700 border-amber-200';
+    }
+
+    return 'bg-slate-100 text-slate-700 border-slate-200';
+  }
+
+  getOrderItemsPreview(order: Order): string {
+    if (!order.items || order.items.length === 0) {
+      return 'Sin articulos';
+    }
+
+    const names = order.items.map((item) => item.name).filter((name) => name && name.trim().length > 0);
+    if (names.length <= 2) {
+      return names.join(', ');
+    }
+
+    return `${names.slice(0, 2).join(', ')} +${names.length - 2} mas`;
+  }
+
+  logout(): void {
+    this.userService.logout();
+    void this.router.navigateByUrl('/');
   }
 }

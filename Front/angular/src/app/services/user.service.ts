@@ -1,12 +1,12 @@
 import { Injectable, signal } from '@angular/core';
-import { Observable, catchError, map, of, tap, throwError } from 'rxjs';
+import { Observable, forkJoin, map, of, switchMap, tap, throwError } from 'rxjs';
 import { MetodoPagoCreateRequest, MetodoPagoUpdateRequest, PaymentMethod } from '../models/payment.model';
 import { Address, AddressCreateRequest, AddressUpdateRequest } from '../models/address.model';
 import { AuthService } from './auth.service';
 import { PaymentService } from './payment.service';
 import { AddressService } from './address.service';
 import { UsuarioResponse, UsuarioService } from './usuario.service';
-import { BackendOrderResponse, CreateOrderItemRequest, OrderBackendService } from './order-backend.service';
+import { BackendOrderResponse, BackendOrdersEnvelope, CreateOrderItemRequest, OrderBackendService } from './order-backend.service';
 
 export interface OrderItem {
   platoId: number;
@@ -41,6 +41,8 @@ interface StoredAccount extends UserProfile {
   password: string;
 }
 
+const ORDERS_STORAGE_PREFIX = 'orders_';
+
 // Start with no saved payment methods; users can add them via UI
 
 @Injectable({ providedIn: 'root' })
@@ -53,6 +55,7 @@ export class UserService {
   readonly orders = signal<Order[]>([]);
   readonly defaultPaymentId = signal<number | null>(null);
   readonly user = signal<UserProfile | null>(null);
+  readonly currentUserId = signal<number | null>(null);
   readonly accounts = signal<StoredAccount[]>([]);
   readonly guestBalance = signal(100);
   readonly addresses = signal<Address[]>([]);
@@ -65,7 +68,11 @@ export class UserService {
     private readonly authService: AuthService,
     private readonly addressService: AddressService,
     private readonly orderBackendService: OrderBackendService
-  ) {}
+  ) {
+    this.isLoggedIn.set(this.authService.isLoggedIn());
+    this.currentUserId.set(this.resolveAuthUserIdFromToken());
+    this.loadOrdersFromStorage();
+  }
 
   isAdminUser(): boolean {
     const user = this.user();
@@ -78,11 +85,14 @@ export class UserService {
 
   login(isNewUser = false): void {
     this.isLoggedIn.set(true);
+    this.currentUserId.set(this.resolveAuthUserIdFromToken());
     this.isNewUser = isNewUser;
+    this.loadOrdersFromStorage();
 
     if (this.isNewUser) {
       this.fetchPaymentMethods();
       this.fetchAddresses();
+      this.fetchOrders();
       return;
     }
 
@@ -92,6 +102,7 @@ export class UserService {
         try {
           this.fetchPaymentMethods();
           this.fetchAddresses();
+          this.fetchOrders();
         } catch {
           // ignore fetch errors
         }
@@ -101,6 +112,7 @@ export class UserService {
         try {
           this.fetchPaymentMethods();
           this.fetchAddresses();
+          this.fetchOrders();
         } catch {
           // ignore
         }
@@ -115,9 +127,11 @@ export class UserService {
     this.premiumExpira.set(null);
     this.roles.set([]);
     this.user.set(null);
+    this.currentUserId.set(null);
     // clear sensitive user data
     this.paymentMethods.set([]);
     this.defaultPaymentId.set(null);
+    this.orders.set([]);
     this.addresses.set([]);
     this.defaultAddressId.set(null);
   }
@@ -135,16 +149,52 @@ export class UserService {
     return this.usuarioService.getMe().pipe(
       tap((usuario) => {
         this.syncAccessFromUsuario(usuario);
+        this.currentUserId.set(
+          this.extractUserIdFromUsuario(usuario) ?? this.resolveAuthUserIdFromToken()
+        );
+        this.updateUser({
+          username: usuario.username,
+          name: `${usuario.nombre} ${usuario.apellidos}`.trim(),
+          email: usuario.email,
+          address: usuario.direccion,
+          codigoPostal: usuario.codigoPostal,
+          ciudad: usuario.ciudad,
+          pais: usuario.pais,
+          phone: usuario.telefono,
+        });
         this.isPremium.set(usuario.isSuscriptor ?? false);
         this.premiumExpira.set(usuario.suscripcionExpira ?? null);
+        this.loadOrdersFromStorage();
       })
     );
+  }
+
+  fetchOrders(): void {
+    this.orderBackendService.listMine().pipe(
+      map((payload) => this.extractBackendOrders(payload)),
+      map((orders) => orders.map((backendOrder) => this.mapBackendOrder(backendOrder, [], 0)))
+    ).subscribe({
+      next: (orders) => {
+        this.orders.set(orders);
+        this.persistOrdersToStorage();
+      },
+      error: () => {
+        // keep current list if backend fetch fails
+      },
+    });
   }
 
   syncAccessFromUsuario(usuario: UsuarioResponse): void {
     this.roles.set(usuario.roles ?? []);
     if ((usuario.roles ?? []).length === 0 && usuario.username?.toLowerCase() === 'admin') {
       this.roles.set(['ROLE_ADMIN']);
+    }
+  }
+
+  hydrateCurrentUserIdFromUsuario(usuario: UsuarioResponse): void {
+    const userId = this.extractUserIdFromUsuario(usuario);
+    if (userId !== null && userId > 0) {
+      this.currentUserId.set(userId);
     }
   }
 
@@ -256,6 +306,16 @@ export class UserService {
     this.paymentMethods.update((prev) => prev.map((m) => ({ ...m, isDefault: m.id === id })));
   }
 
+  updateLocalPaymentBalance(paymentMethodId: number, saldoDisponible: number): void {
+    this.paymentMethods.update((prev) =>
+      prev.map((paymentMethod) =>
+        paymentMethod.id === paymentMethodId
+          ? { ...paymentMethod, saldoDisponible }
+          : paymentMethod
+      )
+    );
+  }
+
   fetchPaymentMethods(): void {
     if (this.isAdminUser()) {
       const adminMethod = this.createAdminPaymentMethod();
@@ -269,7 +329,7 @@ export class UserService {
         const currentById = new Map(this.paymentMethods().map((paymentMethod) => [paymentMethod.id, paymentMethod]));
         const normalizedList = list.map((paymentMethod) => ({
           ...paymentMethod,
-          saldoDisponible: currentById.get(paymentMethod.id)?.saldoDisponible ?? paymentMethod.saldoDisponible ?? 100,
+          saldoDisponible: paymentMethod.saldoDisponible ?? currentById.get(paymentMethod.id)?.saldoDisponible ?? 100,
         }));
 
         const resolvedList = normalizedList.length > 0 || !this.isAdminUser()
@@ -321,6 +381,10 @@ export class UserService {
         memberSince: new Date().getFullYear().toString(),
       });
       this.isLoggedIn.set(true);
+    }
+
+    if (data.username !== undefined) {
+      this.loadOrdersFromStorage();
     }
   }
 
@@ -397,6 +461,7 @@ export class UserService {
     };
 
     this.orders.update((prev) => [newOrder, ...prev]);
+    this.persistOrdersToStorage();
     return newOrder;
   }
 
@@ -406,20 +471,31 @@ export class UserService {
     paymentMethodId: number,
     pricing?: { subtotal?: number; discount?: number; shipping?: number }
   ): Observable<Order> {
-    return this.orderBackendService.create({
-      items,
-      total,
-      paymentMethodId,
-      subtotal: pricing?.subtotal,
-      discount: pricing?.discount,
-      shipping: pricing?.shipping,
-    }).pipe(
+    return this.orderBackendService.createCart({}).pipe(
+      switchMap((cartResponse) => {
+        const carritoId = Number(cartResponse.id ?? cartResponse.carritoId);
+
+        const addItems$ = items.length > 0
+          ? forkJoin(
+              items.map((item) =>
+                this.orderBackendService.addItemToCart(carritoId, {
+                  platoID: Number(item.platoId),
+                  cantidad: item.quantity,
+                })
+              )
+            )
+          : of([]);
+
+        return addItems$.pipe(map(() => carritoId));
+      }),
+      switchMap((carritoId) => {
+        return this.orderBackendService.create({ carritoId });
+      }),
       map((backendOrder) => this.mapBackendOrder(backendOrder, items, total)),
       tap((order) => {
         this.orders.update((prev) => [order, ...prev]);
-      }),
-      // Keep checkout functional while backend endpoint is being rolled out.
-      catchError(() => of(this.createOrder(items, total)))
+        this.persistOrdersToStorage();
+      })
     );
   }
 
@@ -433,8 +509,12 @@ export class UserService {
         .toString()
         .trim() || 'guest';
 
-    const orderItems: OrderItem[] = Array.isArray(backendOrder.items) && backendOrder.items.length > 0
-      ? backendOrder.items.map((item) => {
+    const backendItems = Array.isArray(backendOrder.items) && backendOrder.items.length > 0
+      ? backendOrder.items
+      : backendOrder.pedidoItems;
+
+    const orderItems: OrderItem[] = Array.isArray(backendItems) && backendItems.length > 0
+      ? backendItems.map((item) => {
           const name = (item.name ?? item.nombre ?? 'Producto').toString();
           const quantity = Number(item.quantity ?? item.cantidad ?? 1);
           const platoIdRaw = item.platoId ?? item.dishId ?? item.idPlato ?? item.id;
@@ -451,7 +531,7 @@ export class UserService {
       ? itemCountFromApi
       : fallbackItems.reduce((sum, item) => sum + item.quantity, 0);
 
-    const date = (backendOrder.date ?? backendOrder.fecha ?? new Date().toISOString()).toString();
+    const date = (backendOrder.fechaPedido ?? backendOrder.date ?? backendOrder.fecha ?? new Date().toISOString()).toString();
     const total = Number(backendOrder.total);
     const statusRaw = (backendOrder.status ?? backendOrder.estado ?? 'Pendiente').toString();
 
@@ -470,8 +550,104 @@ export class UserService {
     const normalized = status.trim().toLowerCase();
     if (normalized === 'entregado') return 'Entregado';
     if (normalized === 'en camino') return 'En camino';
+    if (normalized === 'enproceso') return 'Pendiente';
     if (normalized === 'cancelado') return 'Cancelado';
     return 'Pendiente';
+  }
+
+  private extractBackendOrders(
+    payload: BackendOrderResponse[] | BackendOrdersEnvelope
+  ): BackendOrderResponse[] {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+
+    const candidates = [payload.content, payload.items, payload.pedidos, payload.data, payload.results];
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) {
+        return candidate;
+      }
+    }
+
+    return [];
+  }
+
+  private extractUserIdFromUsuario(usuario: UsuarioResponse): number | null {
+    return this.extractUserIdFromUnknown(usuario);
+  }
+
+  private resolveAuthUserIdFromToken(): number | null {
+    const payload = this.authService.getTokenDebugInfo();
+    if (!payload) {
+      return null;
+    }
+
+    return this.extractUserIdFromUnknown(payload);
+  }
+
+  private resolveCurrentUserIdForCheckout(): Observable<number> {
+    const fromState = this.currentUserId();
+    if (fromState !== null && fromState > 0) {
+      return of(fromState);
+    }
+
+    const fromToken = this.resolveAuthUserIdFromToken();
+    if (fromToken !== null && fromToken > 0) {
+      this.currentUserId.set(fromToken);
+      return of(fromToken);
+    }
+
+    return this.usuarioService.getMe().pipe(
+      map((usuario) => this.extractUserIdFromUsuario(usuario)),
+      switchMap((usuarioId) => {
+        if (usuarioId !== null && usuarioId > 0) {
+          this.currentUserId.set(usuarioId);
+          return of(usuarioId);
+        }
+
+        return throwError(() => new Error('USER_ID_UNAVAILABLE'));
+      })
+    );
+  }
+
+  private extractUserIdFromUnknown(value: unknown): number | null {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const queue: unknown[] = [value];
+    const visited = new Set<object>();
+    const idKeys = ['id', 'usuarioId', 'userId', 'idUsuario', 'uid', 'nameid'];
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      if (!current || typeof current !== 'object') {
+        continue;
+      }
+
+      if (visited.has(current as object)) {
+        continue;
+      }
+
+      visited.add(current as object);
+      const record = current as Record<string, unknown>;
+
+      for (const key of idKeys) {
+        const raw = record[key];
+        const numeric = Number(raw);
+        if (Number.isFinite(numeric) && numeric > 0) {
+          return numeric;
+        }
+      }
+
+      for (const nested of Object.values(record)) {
+        if (nested && typeof nested === 'object') {
+          queue.push(nested);
+        }
+      }
+    }
+
+    return null;
   }
 
   hasPaymentMethod(): boolean {
@@ -610,6 +786,50 @@ export class UserService {
 
   hasAddress(): boolean {
     return this.addresses().length > 0;
+  }
+
+  private resolveOrdersStorageKey(): string {
+    const currentUsername = this.user()?.username?.trim().toLowerCase();
+    if (currentUsername) {
+      return `${ORDERS_STORAGE_PREFIX}${currentUsername}`;
+    }
+
+    const payload = this.authService.getTokenDebugInfo();
+    const tokenUsername = String(
+      payload?.['username'] ?? payload?.['sub'] ?? payload?.['preferred_username'] ?? ''
+    ).trim().toLowerCase();
+
+    if (tokenUsername) {
+      return `${ORDERS_STORAGE_PREFIX}${tokenUsername}`;
+    }
+
+    return `${ORDERS_STORAGE_PREFIX}guest`;
+  }
+
+  private loadOrdersFromStorage(): void {
+    this.orders.set(this.readOrdersFromStorage());
+  }
+
+  private readOrdersFromStorage(): Order[] {
+    try {
+      const raw = localStorage.getItem(this.resolveOrdersStorageKey());
+      if (!raw) {
+        return [];
+      }
+
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private persistOrdersToStorage(): void {
+    try {
+      localStorage.setItem(this.resolveOrdersStorageKey(), JSON.stringify(this.orders()));
+    } catch {
+      // Ignore storage write errors to avoid blocking checkout.
+    }
   }
 
   getDefaultAddress(): Address | null {

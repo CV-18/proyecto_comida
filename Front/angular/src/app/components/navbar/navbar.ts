@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router } from '@angular/router';
 import { TranslateService } from '../../services/translate.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 import { CartService } from '../../services/cart.service';
@@ -28,6 +29,7 @@ export class Navbar {
     public userService: UserService
     , public translateService: TranslateService
     , public authService: AuthService
+    , private readonly router: Router
   ) {}
 
   getInitials(): string {
@@ -79,5 +81,12 @@ export class Navbar {
 
   getCurrentLanguage(): { code: string; flag: string; label: string } {
     return this.languageOptions.find((lang) => lang.code === this.translateService.lang) ?? this.languageOptions[0];
+  }
+
+  logout(): void {
+    this.userService.logout();
+    this.closeLanguageMenu();
+    this.closeMobileMenu();
+    void this.router.navigateByUrl('/');
   }
 }

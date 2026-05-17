@@ -10,12 +10,7 @@ export interface CreateOrderItemRequest {
 }
 
 export interface CreateOrderRequest {
-  items: CreateOrderItemRequest[];
-  total: number;
-  paymentMethodId: number;
-  subtotal?: number;
-  discount?: number;
-  shipping?: number;
+  carritoId: number;
 }
 
 export interface GuestCheckoutRequestDto {
@@ -54,14 +49,38 @@ export interface BackendOrderResponse {
   codigo?: string;
   date?: string;
   fecha?: string;
+  fechaPedido?: string;
   total?: number;
   username?: string;
   usuario?: string;
   status?: string;
   estado?: string;
   items?: BackendOrderItem[];
+  pedidoItems?: BackendOrderItem[];
   itemCount?: number;
   cantidadItems?: number;
+}
+
+export interface BackendOrdersEnvelope {
+  content?: BackendOrderResponse[];
+  items?: BackendOrderResponse[];
+  pedidos?: BackendOrderResponse[];
+  data?: BackendOrderResponse[];
+  results?: BackendOrderResponse[];
+}
+
+export interface BackendCartResponse {
+  id?: number;
+  carritoId?: number;
+}
+
+export interface CreateCartRequest {
+  [key: string]: never;
+}
+
+export interface AddCartItemRequest {
+  platoID: number;
+  cantidad: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -75,11 +94,19 @@ export class OrderBackendService {
     return this.http.post<BackendOrderResponse>(this.API, request);
   }
 
+  listMine(): Observable<BackendOrderResponse[] | BackendOrdersEnvelope> {
+    return this.http.get<BackendOrderResponse[] | BackendOrdersEnvelope>(this.API);
+  }
+
   createGuestOrder(request: GuestCheckoutRequestDto): Observable<BackendOrderResponse> {
     return this.http.post<BackendOrderResponse>(`${this.API}/guest`, request);
   }
 
-  createCart(items: CreateOrderItemRequest[]): Observable<{ id: number }> {
-    return this.http.post<{ id: number }>(this.CART_API, { carritoItems: items });
+  createCart(request: CreateCartRequest = {}): Observable<BackendCartResponse> {
+    return this.http.post<BackendCartResponse>(this.CART_API, request);
+  }
+
+  addItemToCart(cartId: number, request: AddCartItemRequest): Observable<BackendCartResponse> {
+    return this.http.post<BackendCartResponse>(`${this.CART_API}/${cartId}/items`, request);
   }
 }

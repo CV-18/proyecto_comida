@@ -4,6 +4,9 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface UsuarioResponse {
+  id?: number;
+  usuarioId?: number;
+  userId?: number;
   nombre: string;
   apellidos: string;
   username: string;
