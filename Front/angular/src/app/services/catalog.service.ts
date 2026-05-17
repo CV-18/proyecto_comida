@@ -12,7 +12,7 @@ type PlatoListResponse = PlatoResponse[] | {
 
 @Injectable({ providedIn: 'root' })
 export class CatalogService {
-  private readonly API = `${environment.apiUrl}/v1/platos`;
+  private readonly API = `${environment.apiUrl}/platos`;
   private readonly PLATO_IMAGE_PREFIX = 'plato_image_';
 
   constructor(private readonly http: HttpClient) {}

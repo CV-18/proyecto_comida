@@ -25,5 +25,9 @@
     "total": "Total",
     "checkout": "Pay now",
     "continue": "Continue shopping"
+  },
+  "address": {
+    "addTitle": "Add Delivery Address",
+    "addSubtitle": "Enter your complete address to proceed with checkout."
   }
 }

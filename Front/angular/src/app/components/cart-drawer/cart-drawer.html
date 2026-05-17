@@ -106,6 +106,14 @@
 							<button type="button" class="mt-2 text-sm text-orange-600" (click)="paymentModal.open()">Añadir tarjeta</button>
 						</div>
 					}
+
+					<!-- Address Info -->
+					@if (userService.hasAddress()) {
+						<div class="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+							✓ Dirección de envío agregada
+						</div>
+					}
+
 				<button
 					type="button"
 					class="w-full px-4 py-3 rounded-full bg-amber-500 text-white font-medium hover:bg-amber-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -122,3 +130,6 @@
 
 <!-- Payment Modal -->
 <app-payment-modal #paymentModal></app-payment-modal>
+
+<!-- Address Modal -->
+<app-address-modal #addressModal (onAddressAdded)="onAddAddress()"></app-address-modal>

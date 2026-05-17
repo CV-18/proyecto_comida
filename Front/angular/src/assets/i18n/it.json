@@ -25,5 +25,9 @@
     "total": "Totale",
     "checkout": "Paga ora",
     "continue": "Continua a comprare"
+  },
+  "address": {
+    "addTitle": "Aggiungi indirizzo di spedizione",
+    "addSubtitle": "Inserisci il tuo indirizzo completo per procedere con il pagamento."
   }
 }

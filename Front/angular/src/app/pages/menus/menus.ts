@@ -34,8 +34,10 @@ interface MenuSlot {
   allowedCategories: PlatoResponse['categoria'][];
 }
 
+const SPANISH_PAELLA_IMAGE = '/paella-real.jpg';
+
 const menuImagesByCountry: Record<Exclude<MenuScope, 'Todos'>, string> = {
-  Espanol: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Paella_negra.jpg/640px-Paella_negra.jpg',
+  Espanol: SPANISH_PAELLA_IMAGE,
   Mexicano: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=1400&h=800&fit=crop',
   Italiano: 'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?w=1400&h=800&fit=crop',
   Japones: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=1400&h=800&fit=crop',
@@ -291,14 +293,17 @@ export class Menus implements OnInit {
   }
 
   private getMenuImage(): string {
+    if (this.activeCategory === 'Espanol' || this.activeCategory === 'Todos') {
+      return SPANISH_PAELLA_IMAGE;
+    }
+
     if (this.userService.isPremium()) {
       const seed = `${this.activeCategory}-${this.selectedDishes.map((dish) => dish.id).join('-') || 'sin-platos'}`;
       const index = Math.abs(this.hashSeed(seed)) % premiumMenuImages.length;
       return premiumMenuImages[index];
     }
 
-    const countryKey = this.activeCategory === 'Todos' ? 'Espanol' : this.activeCategory;
-    return menuImagesByCountry[countryKey as Exclude<MenuScope, 'Todos'>];
+    return menuImagesByCountry[this.activeCategory as Exclude<MenuScope, 'Todos'>];
   }
 
   private getDishImage(plato: PlatoResponse): string {

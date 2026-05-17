@@ -6,16 +6,20 @@ import { UserService } from '../../services/user.service';
 import { OrderService } from '../../services/order.service';
 import { TranslateService } from '../../services/translate.service';
 import { PaymentModal } from '../payment-modal/payment-modal';
+import { AddressModalComponent } from '../address-modal/address-modal.component';
+import { GuestCheckoutModalComponent, GuestCheckoutData } from '../guest-checkout-modal/guest-checkout-modal.component';
 import { finalize } from 'rxjs';
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-cart-drawer',
-  imports: [CurrencyPipe, TranslatePipe, PaymentModal],
+  imports: [CurrencyPipe, TranslatePipe, PaymentModal, AddressModalComponent, GuestCheckoutModalComponent],
   templateUrl: './cart-drawer.html',
 })
 export class CartDrawer {
   @ViewChild(PaymentModal) paymentModal!: PaymentModal;
+  @ViewChild(AddressModalComponent) addressModal!: AddressModalComponent;
+  @ViewChild(GuestCheckoutModalComponent) guestCheckoutModal!: GuestCheckoutModalComponent;
 
   isProcessing = signal(false);
   errorMessage = signal<string | null>(null);
@@ -39,10 +43,24 @@ export class CartDrawer {
     void this.router.navigateByUrl('/platos');
   }
 
+  onAddAddress(): void {
+    // Se llama cuando se agrega una dirección desde el modal
+    // Intentar de nuevo el checkout
+    setTimeout(() => {
+      this.checkout();
+    }, 500);
+  }
+
   checkout(): void {
     if (this.cart.items().length === 0 || this.isProcessing()) return;
 
     this.errorMessage.set(null);
+
+    // Validar que el usuario tenga una dirección de envío (solo si está logeado)
+    if (this.userService.isLoggedIn() && !this.userService.hasAddress()) {
+      this.addressModal.open();
+      return;
+    }
 
     // Validar que el usuario tenga método de pago
     if (!this.userService.hasPaymentMethod()) {

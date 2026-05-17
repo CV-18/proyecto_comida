@@ -46,7 +46,7 @@ export interface BackendOrderResponse {
 
 @Injectable({ providedIn: 'root' })
 export class OrderBackendService {
-  private readonly API = `${environment.apiUrl}/v1/pedidos`;
+  private readonly API = `${environment.apiUrl}/pedidos`;
 
   constructor(private readonly http: HttpClient) {}
 

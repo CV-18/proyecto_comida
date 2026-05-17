@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ViewChild } from '@angular/core';
 import { UserService } from '../../services/user.service';
@@ -17,6 +17,7 @@ type AccountTab = 'perfil' | 'pedidos' | 'pagos' | 'admin';
   selector: 'app-account',
   imports: [RouterLink, PaymentModal],
   templateUrl: './account.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Account implements OnInit {
   @ViewChild(PaymentModal) paymentModal!: PaymentModal;
@@ -29,6 +30,9 @@ export class Account implements OnInit {
     name: '',
     email: '',
     address: '',
+    codigoPostal: '',
+    ciudad: '',
+    pais: '',
     phone: '',
   };
   reorderMessage = '';
@@ -57,11 +61,19 @@ export class Account implements OnInit {
           name: `${usuario.nombre} ${usuario.apellidos}`.trim(),
           email: usuario.email,
           address: usuario.direccion,
+          codigoPostal: usuario.codigoPostal,
+          ciudad: usuario.ciudad,
+          pais: usuario.pais,
           phone: usuario.telefono,
         });
         this.userService.isPremium.set(usuario.isSuscriptor ?? false);
         this.userService.premiumExpira.set(usuario.suscripcionExpira ?? null);
         this.userService.fetchPaymentMethods();
+
+        if (!this.userService.hasShippingAddress()) {
+          this.activeTab = 'perfil';
+          this.isEditing = true;
+        }
       },
       error: (err) => {
         console.error('No se pudo cargar el perfil', err);
@@ -177,6 +189,9 @@ export class Account implements OnInit {
       name: this.usuario?.nombre ?? '',
       email: this.usuario?.email ?? '',
       address: this.usuario?.direccion ?? '',
+      codigoPostal: this.usuario?.codigoPostal ?? '',
+      ciudad: this.usuario?.ciudad ?? '',
+      pais: this.usuario?.pais ?? '',
       phone: this.usuario?.telefono ?? '',
     };
     this.isEditing = true;
@@ -202,6 +217,9 @@ export class Account implements OnInit {
       apellidos,
       email: this.draft.email,
       direccion: this.draft.address,
+      codigoPostal: this.draft.codigoPostal,
+      ciudad: this.draft.ciudad,
+      pais: this.draft.pais,
       telefono: this.draft.phone,
     }).subscribe({
       next: (usuario) => {
@@ -212,6 +230,9 @@ export class Account implements OnInit {
           name: `${usuario.nombre} ${usuario.apellidos}`.trim(),
           email: usuario.email,
           address: usuario.direccion,
+          codigoPostal: usuario.codigoPostal,
+          ciudad: usuario.ciudad,
+          pais: usuario.pais,
           phone: usuario.telefono,
         });
         this.isEditing = false;

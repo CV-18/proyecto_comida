@@ -73,8 +73,8 @@ export interface MenuCreateRequest {
 
 @Injectable({ providedIn: 'root' })
 export class CatalogAdminService {
-  private readonly API = `${environment.apiUrl}/v1/admin`;
-  private readonly API_PLATOS_PUBLIC = this.API.replace('/v1/admin', '/v1/platos');
+  private readonly API = `${environment.apiUrl}/admin`;
+  private readonly API_PLATOS_PUBLIC = this.API.replace('/admin', '/platos');
   private readonly PLATO_IMAGE_PREFIX = 'plato_image_';
 
   constructor(

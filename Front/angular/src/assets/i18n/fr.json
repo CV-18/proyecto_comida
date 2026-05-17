@@ -25,5 +25,9 @@
     "total": "Total",
     "checkout": "Payer maintenant",
     "continue": "Continuer vos achats"
+  },
+  "address": {
+    "addTitle": "Ajouter une adresse de livraison",
+    "addSubtitle": "Entrez votre adresse complète pour procéder à la commande."
   }
 }

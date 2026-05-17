@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
-import { filter, finalize, timeout } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { catchError, filter, finalize, timeout } from 'rxjs/operators';
 import { UserService } from '../../services/user.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 import { AuthService } from '../../services/auth.service';
@@ -19,7 +20,7 @@ export class Auth implements OnInit {
   formError = '';
   readonly passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{10,}$/;
   readonly emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  readonly phonePattern = /^[0-9+\-\s()]{9,}$/;
+  readonly phonePattern = /^\d{9}$/;
 
   form = {
     username: '',
@@ -34,7 +35,8 @@ export class Auth implements OnInit {
   constructor(
     private readonly router: Router,
     public userService: UserService,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -58,8 +60,12 @@ export class Auth implements OnInit {
     event: Event
   ): void {
     const input = event.target as HTMLInputElement;
-    this.form[field] = input.value;
-    this.formError = '';
+    this.form[field] = field === 'phone'
+      ? input.value.replace(/\D/g, '').slice(0, 9)
+      : input.value;
+    if (!this.isLoading) {
+      this.formError = '';
+    }
   }
 
   login(): void {
@@ -79,24 +85,26 @@ export class Auth implements OnInit {
         username: this.form.username,
         password: this.form.password
       }).pipe(
+        catchError((error: unknown) => {
+          this.formError = this.getBackendErrorMessage(error, 'Usuario o contraseña incorrectos.');
+          return of(null);
+        }),
         timeout(10000),
         finalize(() => {
           this.isLoading = false;
+          this.cdr.detectChanges();
         })
       ).subscribe({
         next: (res) => {
+          if (!res) {
+            return;
+          }
+
           this.authService.saveToken(res.token);
           this.userService.login();
           void this.router.navigateByUrl('/cuenta');
         },
-        error: (error) => {
-          // Asegurar que el spinner se apague y mostrar mensaje parseado
-          this.isLoading = false;
-          const backendMsg = error && (error as any).error && typeof (error as any).error === 'object' && (error as any).error.message;
-          this.formError = (typeof backendMsg === 'string' && backendMsg.trim().length > 0)
-            ? backendMsg
-            : this.getBackendErrorMessage(error, 'Usuario o contraseña incorrectos.');
-        }
+        error: () => undefined
       });
       return;
     }
@@ -114,24 +122,26 @@ export class Auth implements OnInit {
       ciudad: '',
       pais: ''
     }).pipe(
+      catchError((error: unknown) => {
+        this.formError = this.getBackendErrorMessage(error, 'Error al crear la cuenta. Inténtalo de nuevo.');
+        return of(null);
+      }),
       timeout(10000),
       finalize(() => {
         this.isLoading = false;
+          this.cdr.detectChanges();
       })
     ).subscribe({
       next: (res) => {
+        if (!res) {
+          return;
+        }
+
         this.authService.saveToken(res.token);
         this.userService.login();
         void this.router.navigateByUrl('/cuenta');
       },
-      error: (error) => {
-        // Asegurar que el spinner se apague y mostrar mensaje parseado
-        this.isLoading = false;
-        const backendMsg = error && (error as any).error && typeof (error as any).error === 'object' && (error as any).error.message;
-        this.formError = (typeof backendMsg === 'string' && backendMsg.trim().length > 0)
-          ? backendMsg
-          : this.getBackendErrorMessage(error, 'Error al crear la cuenta. Inténtalo de nuevo.');
-      }
+      error: () => undefined
     });
   }
 
@@ -140,8 +150,8 @@ export class Auth implements OnInit {
       return fallback;
     }
 
-    // Si no hay body, retorna fallback
-    if (!error.error) {
+    // Si no hay body (ej: Spring Security intercepta el 401 antes del GlobalExceptionHandler), retorna fallback
+    if (!error.error || error.error === '' || (typeof error.error === 'string' && error.error.trim() === '')) {
       return fallback;
     }
 
@@ -173,7 +183,7 @@ export class Auth implements OnInit {
         return fieldMessages.join(' ');
       }
 
-      const directMessages = [details['message'], details['errorMessage'], details['detail'], details['title'], details['error']]
+      const directMessages = [details['message'], details['errorMessage'], details['detail'], details['title']]
         .filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
 
       if (directMessages.length > 0) {
@@ -251,7 +261,7 @@ export class Auth implements OnInit {
     }
 
     if (!this.phonePattern.test(phone)) {
-      return 'El número de teléfono no es válido.';
+      return 'El número de teléfono debe tener 9 números.';
     }
 
     if (!email) {

@@ -1,8 +1,10 @@
 import { Injectable, signal } from '@angular/core';
 import { Observable, catchError, map, of, tap, throwError } from 'rxjs';
 import { MetodoPagoCreateRequest, MetodoPagoUpdateRequest, PaymentMethod } from '../models/payment.model';
+import { Address, AddressCreateRequest, AddressUpdateRequest } from '../models/address.model';
 import { AuthService } from './auth.service';
 import { PaymentService } from './payment.service';
+import { AddressService } from './address.service';
 import { UsuarioResponse, UsuarioService } from './usuario.service';
 import { BackendOrderResponse, OrderBackendService } from './order-backend.service';
 
@@ -27,6 +29,9 @@ export interface UserProfile {
   name: string;
   email: string;
   address: string;
+  codigoPostal: string;
+  ciudad: string;
+  pais: string;
   phone: string;
   memberSince: string;
   balance?: number; // Saldo disponible
@@ -77,11 +82,14 @@ export class UserService {
   readonly user = signal<UserProfile | null>(null);
   readonly accounts = signal<StoredAccount[]>([]);
   readonly guestBalance = signal(100);
+  readonly addresses = signal<Address[]>([]);
+  readonly defaultAddressId = signal<number | null>(null);
 
   constructor(
     private readonly paymentService: PaymentService,
     private readonly usuarioService: UsuarioService,
     private readonly authService: AuthService,
+    private readonly addressService: AddressService,
     private readonly orderBackendService: OrderBackendService
   ) {}
 
@@ -96,19 +104,21 @@ export class UserService {
 
   login(): void {
     this.isLoggedIn.set(true);
-    // Sync Premium status from server and load payment methods
+    // Sync Premium status from server and load payment methods + addresses
     this.refreshUserState().subscribe({
       next: () => {
         try {
           this.fetchPaymentMethods();
+          this.fetchAddresses();
         } catch {
           // ignore fetch errors
         }
       },
       error: () => {
-        // if refresh fails, still load payment methods
+        // if refresh fails, still load payment methods and addresses
         try {
           this.fetchPaymentMethods();
+          this.fetchAddresses();
         } catch {
           // ignore
         }
@@ -126,6 +136,8 @@ export class UserService {
     // clear sensitive user data
     this.paymentMethods.set([]);
     this.defaultPaymentId.set(null);
+    this.addresses.set([]);
+    this.defaultAddressId.set(null);
   }
 
   subscribePremium(paymentMethodId: number): Observable<UsuarioResponse> {
@@ -320,6 +332,9 @@ export class UserService {
         name: data.name ?? '',
         email: data.email ?? '',
         address: data.address ?? '',
+        codigoPostal: data.codigoPostal ?? '',
+        ciudad: data.ciudad ?? '',
+        pais: data.pais ?? '',
         phone: data.phone ?? '',
         memberSince: new Date().getFullYear().toString(),
       });
@@ -361,6 +376,9 @@ export class UserService {
       name: account.name.trim(),
       email: account.email.trim(),
       address: '',
+      codigoPostal: '',
+      ciudad: '',
+      pais: '',
       phone: account.phone.trim(),
       memberSince: new Date().getFullYear().toString(),
       password: account.password,
@@ -372,6 +390,9 @@ export class UserService {
       name: storedAccount.name,
       email: storedAccount.email,
       address: storedAccount.address,
+      codigoPostal: storedAccount.codigoPostal,
+      ciudad: storedAccount.ciudad,
+      pais: storedAccount.pais,
       phone: storedAccount.phone,
       memberSince: storedAccount.memberSince,
     });
@@ -481,6 +502,15 @@ export class UserService {
     );
   }
 
+  hasShippingAddress(): boolean {
+    const user = this.user();
+    return !!user
+      && user.address.trim().length > 0
+      && user.codigoPostal.trim().length > 0
+      && user.ciudad.trim().length > 0
+      && user.pais.trim().length > 0;
+  }
+
   hasAvailableFunds(amount: number): boolean {
     const user = this.user();
     const balance = user?.balance ?? this.guestBalance();
@@ -515,5 +545,102 @@ export class UserService {
   getUserBalance(): number {
     const user = this.user();
     return user?.balance ?? this.guestBalance();
+  }
+
+  // ==================== DIRECCIONES ====================
+
+  addAddress(address: AddressCreateRequest): Observable<Address> {
+    return this.addressService.create(address).pipe(
+      tap((created) => {
+        this.addresses.update((prev) => {
+          const makeDefault = prev.length === 0 || !prev.some(a => a.isDefault);
+          const final = makeDefault ? { ...created, isDefault: true } : created;
+          const updatedPrev = makeDefault
+            ? prev.map(a => ({ ...a, isDefault: false }))
+            : prev;
+
+          if (makeDefault) {
+            this.defaultAddressId.set(final.id ?? null);
+          }
+
+          return [...updatedPrev, final];
+        });
+      })
+    );
+  }
+
+  updateAddress(id: number, address: AddressUpdateRequest): Observable<Address> {
+    return this.addressService.update(id, address).pipe(
+      tap((updated) => {
+        this.addresses.update((prev) =>
+          prev.map(a => (a.id === id ? { ...a, ...updated } : a))
+        );
+
+        if (updated.isDefault) {
+          this.defaultAddressId.set(id);
+          this.addresses.update((prev) =>
+            prev.map(a => ({ ...a, isDefault: a.id === id }))
+          );
+        }
+      })
+    );
+  }
+
+  removeAddress(id: number): void {
+    this.addressService.delete(id).subscribe({
+      next: () => this.updateLocalAfterAddressRemove(id),
+      error: () => this.updateLocalAfterAddressRemove(id),
+    });
+  }
+
+  private updateLocalAfterAddressRemove(id: number): void {
+    this.addresses.update((prev) => {
+      const filtered = prev.filter(a => a.id !== id);
+      if (this.defaultAddressId() === id) {
+        if (filtered.length > 0) {
+          const firstId = filtered[0].id;
+          this.defaultAddressId.set(firstId ?? null);
+          return filtered.map((a, i) => ({ ...a, isDefault: i === 0 }));
+        }
+        this.defaultAddressId.set(null);
+      }
+      return filtered;
+    });
+  }
+
+  setDefaultAddress(id: number): void {
+    this.addressService.setDefault(id).subscribe({
+      next: () => this.applyLocalDefaultAddress(id),
+      error: () => this.applyLocalDefaultAddress(id),
+    });
+  }
+
+  private applyLocalDefaultAddress(id: number): void {
+    this.defaultAddressId.set(id);
+    this.addresses.update((prev) => prev.map(a => ({ ...a, isDefault: a.id === id })));
+  }
+
+  fetchAddresses(): void {
+    this.addressService.getAll().subscribe({
+      next: (list) => {
+        this.addresses.set(list);
+        const def = list.find(a => a.isDefault) ?? list[0];
+        this.defaultAddressId.set(def ? def.id ?? null : null);
+      },
+      error: () => {
+        // keep in-memory state if fetch fails
+      }
+    });
+  }
+
+  hasAddress(): boolean {
+    return this.addresses().length > 0;
+  }
+
+  getDefaultAddress(): Address | null {
+    const addresses = this.addresses();
+    if (addresses.length === 0) return null;
+    const def = addresses.find(a => a.isDefault);
+    return def || addresses[0];
   }
 }

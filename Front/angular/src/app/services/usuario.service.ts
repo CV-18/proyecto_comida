@@ -34,7 +34,7 @@ export interface UsuarioUpdateRequest {
 
 @Injectable({ providedIn: 'root' })
 export class UsuarioService {
-  private readonly API = `${environment.apiUrl}/v1/usuarios`;
+  private readonly API = `${environment.apiUrl}/usuarios`;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -55,7 +55,7 @@ export class UsuarioService {
 
   cobrarMetodoPago(id: number, monto: number): Observable<{ saldoDisponible: number }> {
     return this.http.post<{ saldoDisponible: number }>(
-      `${environment.apiUrl}/v1/metodos-pago/${id}/cobrar`,
+      `${environment.apiUrl}/metodos-pago/${id}/cobrar`,
       { monto }
     );
   }

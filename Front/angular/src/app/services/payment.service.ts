@@ -6,7 +6,7 @@ import { MetodoPagoCreateRequest, MetodoPagoUpdateRequest, PaymentMethod } from 
 
 @Injectable({ providedIn: 'root' })
 export class PaymentService {
-  private readonly API = `${environment.apiUrl}/v1/metodos-pago`;
+  private readonly API = `${environment.apiUrl}/metodos-pago`;
 
   constructor(private readonly http: HttpClient) {}
 

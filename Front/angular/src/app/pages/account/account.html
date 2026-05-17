@@ -96,11 +96,43 @@
 								<div class="sm:col-span-2">
 									<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Dirección de entrega</label>
 									@if (isEditing) {
-										<input [value]="draft.address" (input)="updateField('address', $event)" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:border-orange-400 focus:ring-4 focus:ring-orange-400/10 outline-none transition-all text-gray-900" />
+										<input [value]="draft.address" (input)="updateField('address', $event)" placeholder="Escribe tu dirección completa para poder pagar" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:border-orange-400 focus:ring-4 focus:ring-orange-400/10 outline-none transition-all text-gray-900" />
 									} @else {
-										<p class="px-4 py-3 rounded-xl bg-gray-50 text-gray-700">{{ user.address }}</p>
+										@if (user.address.trim()) {
+											<p class="px-4 py-3 rounded-xl bg-gray-50 text-gray-700">{{ user.address }}</p>
+										} @else {
+											<div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+												<p class="font-medium">Falta tu dirección de envío.</p>
+												<p class="mt-1">Añádela para que el carrito te permita completar el pago.</p>
+												<button type="button" class="mt-3 rounded-full bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600" (click)="startEdit()">Añadir dirección</button>
+											</div>
+										}
 									}
 								</div>
+									<div>
+										<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Código postal</label>
+										@if (isEditing) {
+											<input [value]="draft.codigoPostal" (input)="updateField('codigoPostal', $event)" placeholder="28080" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:border-orange-400 focus:ring-4 focus:ring-orange-400/10 outline-none transition-all text-gray-900" />
+										} @else {
+											<p class="px-4 py-3 rounded-xl bg-gray-50 text-gray-700">{{ user.codigoPostal || '—' }}</p>
+										}
+									</div>
+									<div>
+										<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Ciudad</label>
+										@if (isEditing) {
+											<input [value]="draft.ciudad" (input)="updateField('ciudad', $event)" placeholder="Madrid" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:border-orange-400 focus:ring-4 focus:ring-orange-400/10 outline-none transition-all text-gray-900" />
+										} @else {
+											<p class="px-4 py-3 rounded-xl bg-gray-50 text-gray-700">{{ user.ciudad || '—' }}</p>
+										}
+									</div>
+									<div>
+										<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">País</label>
+										@if (isEditing) {
+											<input [value]="draft.pais" (input)="updateField('pais', $event)" placeholder="ESPANOL" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:border-orange-400 focus:ring-4 focus:ring-orange-400/10 outline-none transition-all text-gray-900" />
+										} @else {
+											<p class="px-4 py-3 rounded-xl bg-gray-50 text-gray-700">{{ user.pais || '—' }}</p>
+										}
+									</div>
 							</div>
 						</div>
 

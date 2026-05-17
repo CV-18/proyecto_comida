@@ -28,7 +28,7 @@ export interface JwtAuthResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly API = `${environment.apiUrl}/v1/auth`;
+  private readonly API = `${environment.apiUrl}/auth`;
 
   constructor(private readonly http: HttpClient) {}
 
