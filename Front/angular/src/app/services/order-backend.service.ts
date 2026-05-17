@@ -40,6 +40,7 @@ export interface BackendOrderItem {
   id?: string | number;
   name?: string;
   quantity?: number;
+  nombrePlato?: string;
   nombre?: string;
   cantidad?: number;
 }
@@ -104,6 +105,10 @@ export class OrderBackendService {
 
   createCart(request: CreateCartRequest = {}): Observable<BackendCartResponse> {
     return this.http.post<BackendCartResponse>(this.CART_API, request);
+  }
+
+  updateStatus(orderId: string | number, estado: string): Observable<BackendOrderResponse> {
+    return this.http.patch<BackendOrderResponse>(`${this.API}/${orderId}`, { estado });
   }
 
   addItemToCart(cartId: number, request: AddCartItemRequest): Observable<BackendCartResponse> {

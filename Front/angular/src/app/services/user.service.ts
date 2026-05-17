@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { Observable, forkJoin, map, of, switchMap, tap, throwError } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, switchMap, tap, throwError } from 'rxjs';
 import { MetodoPagoCreateRequest, MetodoPagoUpdateRequest, PaymentMethod } from '../models/payment.model';
 import { Address, AddressCreateRequest, AddressUpdateRequest } from '../models/address.model';
 import { AuthService } from './auth.service';
@@ -19,7 +19,7 @@ export interface Order {
   date: string;
   total: number;
   username: string;
-  status: 'Entregado' | 'En camino' | 'Cancelado' | 'Pendiente';
+  status: 'Entregado' | 'Enviado' | 'En camino' | 'En proceso' | 'Cancelado' | 'Completado' | 'Pendiente';
   items: OrderItem[];
   itemCount: number;
 }
@@ -77,10 +77,6 @@ export class UserService {
   isAdminUser(): boolean {
     const user = this.user();
     return this.roles().includes('ROLE_ADMIN') || this.authService.isAdmin() || user?.username?.toLowerCase() === 'admin';
-  }
-
-  canManagePaymentMethods(): boolean {
-    return !this.isAdminUser();
   }
 
   login(isNewUser = false): void {
@@ -172,7 +168,14 @@ export class UserService {
   fetchOrders(): void {
     this.orderBackendService.listMine().pipe(
       map((payload) => this.extractBackendOrders(payload)),
-      map((orders) => orders.map((backendOrder) => this.mapBackendOrder(backendOrder, [], 0)))
+      map((orders) => orders.map((backendOrder) => {
+        const order = this.mapBackendOrder(backendOrder, [], 0);
+        // Pedidos completados o en proceso se muestran siempre como Completado
+        if (order.status === 'En proceso' || order.status === 'Pendiente') {
+          return { ...order, status: 'Completado' as Order['status'] };
+        }
+        return order;
+      }))
     ).subscribe({
       next: (orders) => {
         this.orders.set(orders);
@@ -203,10 +206,6 @@ export class UserService {
   }
 
   addPaymentMethod(method: MetodoPagoCreateRequest): Observable<PaymentMethod> {
-    if (this.isAdminUser()) {
-      return throwError(() => new Error('ADMIN_CANNOT_ADD_PAYMENT_METHODS'));
-    }
-
     return this.paymentService.create(method).pipe(
       tap((created) => {
         this.paymentMethods.update((prev) => {
@@ -231,10 +230,6 @@ export class UserService {
   }
 
   updatePaymentMethod(id: number, method: MetodoPagoUpdateRequest): Observable<PaymentMethod> {
-    if (this.isAdminUser()) {
-      return throwError(() => new Error('ADMIN_CANNOT_EDIT_PAYMENT_METHODS'));
-    }
-
     return this.paymentService.update(id, method).pipe(
       tap((updated) => {
         this.paymentMethods.update((prev) => {
@@ -265,10 +260,6 @@ export class UserService {
   }
 
   removePaymentMethod(id: number): void {
-    if (this.isAdminUser()) {
-      return;
-    }
-
     this.paymentService.remove(id).subscribe({
       next: () => this.updateLocalAfterRemove(id),
       error: () => this.updateLocalAfterRemove(id),
@@ -291,10 +282,6 @@ export class UserService {
   }
 
   setDefaultPayment(id: number): void {
-    if (this.isAdminUser()) {
-      return;
-    }
-
     this.paymentService.setDefault(id).subscribe({
       next: () => this.applyLocalDefault(id),
       error: () => this.applyLocalDefault(id),
@@ -317,13 +304,6 @@ export class UserService {
   }
 
   fetchPaymentMethods(): void {
-    if (this.isAdminUser()) {
-      const adminMethod = this.createAdminPaymentMethod();
-      this.paymentMethods.set([adminMethod]);
-      this.defaultPaymentId.set(adminMethod.id);
-      return;
-    }
-
     this.paymentService.list().subscribe({
       next: (list) => {
         const currentById = new Map(this.paymentMethods().map((paymentMethod) => [paymentMethod.id, paymentMethod]));
@@ -332,36 +312,14 @@ export class UserService {
           saldoDisponible: paymentMethod.saldoDisponible ?? currentById.get(paymentMethod.id)?.saldoDisponible ?? 100,
         }));
 
-        const resolvedList = normalizedList.length > 0 || !this.isAdminUser()
-          ? normalizedList
-          : [this.createAdminPaymentMethod()];
-
-        this.paymentMethods.set(resolvedList);
-        const def = resolvedList.find((m) => m.isDefault) ?? resolvedList[0];
+        this.paymentMethods.set(normalizedList);
+        const def = normalizedList.find((m) => m.isDefault) ?? normalizedList[0];
         this.defaultPaymentId.set(def ? def.id : null);
       },
       error: () => {
         // keep in-memory state if fetch fails
-        if (this.isAdminUser() && this.paymentMethods().length === 0) {
-          const adminMethod = this.createAdminPaymentMethod();
-          this.paymentMethods.set([adminMethod]);
-          this.defaultPaymentId.set(adminMethod.id);
-        }
       }
     });
-  }
-
-  private createAdminPaymentMethod(): PaymentMethod {
-    return {
-      id: -1,
-      tipo: 'TARJETA_CREDITO',
-      numeroTarjeta: '0000000000000000',
-      nombreTitular: 'ADMIN',
-      fechaExpiracion: '12/99',
-      cvv: '000',
-      isDefault: true,
-      saldoDisponible: 100000,
-    };
   }
 
   updateUser(data: Partial<UserProfile>): void {
@@ -477,13 +435,13 @@ export class UserService {
 
         const addItems$ = items.length > 0
           ? forkJoin(
-              items.map((item) =>
-                this.orderBackendService.addItemToCart(carritoId, {
-                  platoID: Number(item.platoId),
-                  cantidad: item.quantity,
-                })
-              )
+            items.map((item) =>
+              this.orderBackendService.addItemToCart(carritoId, {
+                platoID: Number(item.platoId),
+                cantidad: item.quantity,
+              })
             )
+          )
           : of([]);
 
         return addItems$.pipe(map(() => carritoId));
@@ -491,7 +449,20 @@ export class UserService {
       switchMap((carritoId) => {
         return this.orderBackendService.create({ carritoId });
       }),
-      map((backendOrder) => this.mapBackendOrder(backendOrder, items, total)),
+      switchMap((backendOrder) => {
+        const orderId = backendOrder.id ?? backendOrder.codigo;
+        if (!orderId) {
+          return of(backendOrder);
+        }
+        return this.orderBackendService.updateStatus(orderId, 'Completado').pipe(
+          map((updated) => ({ ...backendOrder, ...updated })),
+          catchError(() => of(backendOrder))
+        );
+      }),
+      map((backendOrder) => {
+        const order = this.mapBackendOrder(backendOrder, items, total);
+        return { ...order, status: 'Completado' as Order['status'] };
+      }),
       tap((order) => {
         this.orders.update((prev) => [order, ...prev]);
         this.persistOrdersToStorage();
@@ -515,21 +486,23 @@ export class UserService {
 
     const orderItems: OrderItem[] = Array.isArray(backendItems) && backendItems.length > 0
       ? backendItems.map((item) => {
-          const name = (item.name ?? item.nombre ?? 'Producto').toString();
-          const quantity = Number(item.quantity ?? item.cantidad ?? 1);
-          const platoIdRaw = item.platoId ?? item.dishId ?? item.idPlato ?? item.id;
-          return {
-            platoId: Number(platoIdRaw),
-            name,
-            quantity: Number.isFinite(quantity) ? quantity : 1,
-          };
-        })
+        const name = (item.nombrePlato ?? item.name ?? item.nombre ?? 'Producto').toString();
+        const quantity = Number(item.quantity ?? item.cantidad ?? 1);
+        const platoIdRaw = item.platoId ?? item.dishId ?? item.idPlato ?? item.id;
+        return {
+          platoId: Number(platoIdRaw),
+          name,
+          quantity: Number.isFinite(quantity) ? quantity : 1,
+        };
+      })
       : fallbackItems.map(item => ({ ...item, platoId: Number(item.platoId) }));
 
     const itemCountFromApi = Number(backendOrder.itemCount ?? backendOrder.cantidadItems);
     const itemCount = Number.isFinite(itemCountFromApi) && itemCountFromApi > 0
       ? itemCountFromApi
-      : fallbackItems.reduce((sum, item) => sum + item.quantity, 0);
+      : orderItems.length > 0
+        ? orderItems.reduce((sum, item) => sum + item.quantity, 0)
+        : fallbackItems.reduce((sum, item) => sum + item.quantity, 0);
 
     const date = (backendOrder.fechaPedido ?? backendOrder.date ?? backendOrder.fecha ?? new Date().toISOString()).toString();
     const total = Number(backendOrder.total);
@@ -547,11 +520,13 @@ export class UserService {
   }
 
   private normalizeOrderStatus(status: string): Order['status'] {
-    const normalized = status.trim().toLowerCase();
-    if (normalized === 'entregado') return 'Entregado';
-    if (normalized === 'en camino') return 'En camino';
-    if (normalized === 'enproceso') return 'Pendiente';
+    const normalized = status.trim().toLowerCase().replace(/\s+/g, '');
+    if (normalized === 'entregado' || normalized === 'completado') return 'Completado';
+    if (normalized === 'enviado') return 'Enviado';
+    if (normalized === 'encamino') return 'En camino';
+    if (normalized === 'enproceso') return 'En proceso';
     if (normalized === 'cancelado') return 'Cancelado';
+    if (normalized === 'noenviado') return 'Pendiente';
     return 'Pendiente';
   }
 
@@ -828,7 +803,6 @@ export class UserService {
     try {
       localStorage.setItem(this.resolveOrdersStorageKey(), JSON.stringify(this.orders()));
     } catch {
-      // Ignore storage write errors to avoid blocking checkout.
     }
   }
 

@@ -178,7 +178,7 @@
 
             @if (reorderMessage) {
               <div class="mt-4 rounded-2xl p-3 text-sm"
-                [ngClass]="reorderMessageType === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'">
+                   [ngClass]="reorderMessageType === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'">
                 {{ reorderMessage }}
               </div>
             }
@@ -195,7 +195,7 @@
                             {{ order.status }}
                           </span>
                         </div>
-                        <p class="mt-1 text-sm text-slate-400">{{ order.date | date: 'dd "de" MMMM "de" y' }} · {{ order.itemCount }} productos</p>
+                        <p class="mt-1 text-sm text-slate-400">{{ formatOrderDate(order.date) }} · {{ order.itemCount }} {{ order.itemCount === 1 ? 'producto' : 'productos' }}</p>
                         <ul class="mt-2 list-disc list-inside text-sm text-slate-600">
                           @for (item of order.items; track $index) {
                             <li>{{ item.name }} (x{{ item.quantity }})</li>

@@ -303,19 +303,32 @@ export class Account implements OnInit {
       .slice(0, 2) || 'US';
   }
 
+  formatOrderDate(dateStr: string): string {
+    const MESES = [
+      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+    ];
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return `${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
+  }
+
   getOrderStatusClass(status: Order['status']): string {
-    if (status === 'Entregado') {
-      return 'bg-green-50 text-green-700 border-green-200';
+    if (status === 'Completado') {
+      return 'bg-green-500 text-white border-green-600';
     }
-
-    if (status === 'Cancelado') {
-      return 'bg-red-50 text-red-700 border-red-200';
+    if (status === 'Enviado') {
+      return 'bg-blue-50 text-blue-700 border-blue-200';
     }
-
     if (status === 'En camino') {
       return 'bg-amber-50 text-amber-700 border-amber-200';
     }
-
+    if (status === 'En proceso') {
+      return 'bg-orange-50 text-orange-700 border-orange-200';
+    }
+    if (status === 'Cancelado') {
+      return 'bg-red-50 text-red-700 border-red-200';
+    }
     return 'bg-slate-100 text-slate-700 border-slate-200';
   }
 
