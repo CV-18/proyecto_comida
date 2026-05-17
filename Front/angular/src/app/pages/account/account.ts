@@ -10,12 +10,13 @@ import { AuthService } from '../../services/auth.service';
 import { CatalogService } from '../../services/catalog.service';
 import { CartService } from '../../services/cart.service';
 import type { Order, OrderItem } from '../../services/user.service';
+import { CommonModule } from '@angular/common';
 
 type AccountTab = 'perfil' | 'pedidos' | 'pagos' | 'admin';
 
 @Component({
   selector: 'app-account',
-  imports: [RouterLink, PaymentModal],
+  imports: [RouterLink, PaymentModal, CommonModule],
   templateUrl: './account.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -71,7 +72,7 @@ export class Account implements OnInit {
         };
       }
       this.activeTab = 'perfil';
-      this.isEditing = true;
+      this.userService.isNewUser = false;
       return;
     }
 
@@ -92,11 +93,6 @@ export class Account implements OnInit {
         this.userService.isPremium.set(usuario.isSuscriptor ?? false);
         this.userService.premiumExpira.set(usuario.suscripcionExpira ?? null);
         this.userService.fetchPaymentMethods();
-
-        if (!this.userService.hasShippingAddress()) {
-          this.activeTab = 'perfil';
-          this.isEditing = true;
-        }
       },
       error: (err) => {
         console.error('No se pudo cargar el perfil', err);
@@ -145,7 +141,7 @@ export class Account implements OnInit {
         let premiumBlocked = 0;
 
         for (const item of requested) {
-          const plato = (item.dishId ? byId.get(item.dishId) : undefined)
+          const plato = (item.platoId ? byId.get(String(item.platoId)) : undefined)
             ?? byName.get(this.normalizeText(item.name));
           if (!plato) {
             missing += 1;
@@ -188,10 +184,10 @@ export class Account implements OnInit {
     });
   }
 
-  private extractRequestedItems(items: OrderItem[]): OrderItem[] {
+  private extractRequestedItems(items: OrderItem[]): { platoId: number, name: string, quantity: number }[] {
     return items
       .map((item) => ({
-        dishId: item.dishId,
+        platoId: item.platoId,
         name: item.name?.trim() ?? '',
         quantity: Number.isFinite(item.quantity) && item.quantity > 0 ? item.quantity : 1,
       }))

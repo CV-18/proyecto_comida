@@ -1,9 +1,11 @@
 import { Component, Output, EventEmitter, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AddressCreateRequest } from '../../models/address.model';
+import { Address, AddressCreateRequest } from '../../models/address.model';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 import { UserService } from '../../services/user.service';
+import { finalize } from 'rxjs';
+import { UsuarioResponse } from '../../services/usuario.service';
 
 @Component({
   selector: 'app-address-modal',
@@ -95,7 +97,7 @@ import { UserService } from '../../services/user.service';
 export class AddressModalComponent {
   isOpen = signal(false);
   isLoading = signal(false);
-  @Output() onAddressAdded = new EventEmitter<AddressCreateRequest>();
+  @Output() onAddressAdded = new EventEmitter<UsuarioResponse>();
   @Output() onClosed = new EventEmitter<void>();
 
   form: AddressCreateRequest = {
@@ -118,15 +120,15 @@ export class AddressModalComponent {
 
     this.isLoading.set(true);
 
-    // Add address via UserService
-    this.userService.addAddress(this.form).subscribe({
-      next: () => {
-        this.onAddressAdded.emit(this.form);
+    this.userService.addAddress(this.form).pipe(
+      finalize(() => this.isLoading.set(false))
+    ).subscribe({
+      next: (updatedUser) => {
+        this.onAddressAdded.emit(updatedUser);
         this.resetForm();
         this.close();
       },
       error: () => {
-        this.isLoading.set(false);
         // Error handling could be added here
       }
     });
@@ -148,6 +150,5 @@ export class AddressModalComponent {
       ciudad: '',
       pais: '',
     };
-    this.isLoading.set(false);
   }
 }

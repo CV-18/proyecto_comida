@@ -1,14 +1,14 @@
-export type TipoMetodoPago = 'TARJETA_CREDITO' | 'TARJETA_DEBITO' | 'PAYPAL';
+export type TipoMetodoPago = 'TARJETA_CREDITO' | 'TARJETA_DEBITO';
 
 export interface PaymentMethod {
   id: number;
   tipo: TipoMetodoPago;
   numeroTarjeta: string;
-  nombreTitular?: string;
+  nombreTitular: string;
   fechaExpiracion: string;
-  cvv?: string;
+  cvv: string;
   isDefault: boolean;
-  saldoDisponible: number;
+  saldoDisponible?: number;
 }
 
 export interface MetodoPagoCreateRequest {
@@ -21,10 +21,7 @@ export interface MetodoPagoCreateRequest {
 }
 
 export interface MetodoPagoUpdateRequest {
-  tipo?: TipoMetodoPago;
-  numeroTarjeta?: string;
   nombreTitular?: string;
   fechaExpiracion?: string;
-  cvv?: string;
   isDefault?: boolean;
 }

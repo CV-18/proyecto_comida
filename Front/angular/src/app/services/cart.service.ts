@@ -19,7 +19,7 @@ const GUEST_CART_KEY = 'guest';
 export class CartService {
   readonly items = signal<CartItem[]>([]);
   readonly isCartOpen = signal(false);
-  private activeCartKey = GUEST_CART_KEY;
+  public activeCartKey = GUEST_CART_KEY;
 
   constructor(private user: UserService) {
     this.activeCartKey = this.resolveCartKey();

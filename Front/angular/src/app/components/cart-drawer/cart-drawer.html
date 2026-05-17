@@ -79,7 +79,7 @@
 
 				<div class="pt-3">
 					<!-- Payment method selector -->
-					@if (userService.paymentMethods().length > 0) {
+					@if (userService.isLoggedIn() && userService.paymentMethods().length > 0) {
 						<div class="mb-3">
 								<p class="text-sm text-gray-600 mb-2">Selecciona la tarjeta con la que quieres pagar</p>
 							@for (card of userService.paymentMethods(); track card.id) {
@@ -94,13 +94,13 @@
 												}
 											</div>
 											<p class="text-xs text-gray-500">Exp. {{ card.fechaExpiracion }}</p>
-											<p class="text-xs text-gray-400">Se usará para este pago si la dejas seleccionada</p>
+											<p class="text-xs font-medium text-gray-600">Saldo: {{ card.saldoDisponible | currency:translateService.currencyCode }}</p>
 									</div>
 								</label>
 							}
 							<button type="button" class="mt-2 text-sm text-orange-600" (click)="paymentModal.open()">Añadir otra tarjeta</button>
 						</div>
-					} @else {
+					} @else if (userService.isLoggedIn()) {
 						<div class="mb-3">
 							<p class="text-sm text-gray-500">No hay métodos de pago guardados.</p>
 							<button type="button" class="mt-2 text-sm text-orange-600" (click)="paymentModal.open()">Añadir tarjeta</button>
@@ -108,7 +108,7 @@
 					}
 
 					<!-- Address Info -->
-					@if (userService.hasAddress()) {
+					@if (userService.isLoggedIn() && userService.hasAddress()) {
 						<div class="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
 							✓ Dirección de envío agregada
 						</div>
@@ -132,4 +132,4 @@
 <app-payment-modal #paymentModal></app-payment-modal>
 
 <!-- Address Modal -->
-<app-address-modal #addressModal (onAddressAdded)="onAddAddress()"></app-address-modal>
+<app-address-modal #addressModal (onAddressAdded)="onAddAddress($event)"></app-address-modal>

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 
 export interface GuestCheckoutData {
+  email: string;
   address: {
     direccion: string;
     codigoPostal: string;
@@ -35,6 +36,7 @@ export class GuestCheckoutModalComponent {
   activeTab = signal<'address' | 'payment'>('address');
 
   addressForm = {
+    email: '',
     direccion: '',
     codigoPostal: '',
     ciudad: '',
@@ -63,6 +65,7 @@ export class GuestCheckoutModalComponent {
 
   private resetForms(): void {
     this.addressForm = {
+      email: '',
       direccion: '',
       codigoPostal: '',
       ciudad: '',
@@ -79,7 +82,6 @@ export class GuestCheckoutModalComponent {
   }
 
   switchTab(tab: 'address' | 'payment'): void {
-    // Validar dirección antes de pasar a pago
     if (tab === 'payment' && !this.validateAddress()) {
       return;
     }
@@ -87,9 +89,13 @@ export class GuestCheckoutModalComponent {
   }
 
   validateAddress(): boolean {
-    const { direccion, codigoPostal, ciudad, pais } = this.addressForm;
-    if (!direccion.trim() || !codigoPostal.trim() || !ciudad.trim() || !pais) {
+    const { email, direccion, codigoPostal, ciudad, pais } = this.addressForm;
+    if (!email.trim() || !direccion.trim() || !codigoPostal.trim() || !ciudad.trim() || !pais) {
       this.formError.set('Por favor completa todos los campos de dirección');
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      this.formError.set('Correo electrónico inválido');
       return false;
     }
     if (codigoPostal.length < 4) {
@@ -102,20 +108,17 @@ export class GuestCheckoutModalComponent {
   validatePayment(): boolean {
     const { numeroTarjeta, fechaExpiracion, cvv } = this.paymentForm;
 
-    // Limpiar espacios
     const cleanCardNumber = numeroTarjeta.replace(/\s/g, '');
     if (cleanCardNumber.length < 13 || cleanCardNumber.length > 19) {
       this.formError.set('Número de tarjeta inválido (13-19 dígitos)');
       return false;
     }
 
-    // Validar fecha (MM/YY)
     if (!/^\d{2}\/\d{2}$/.test(fechaExpiracion)) {
       this.formError.set('Fecha de vencimiento inválida (formato: MM/YY)');
       return false;
     }
 
-    // Validar CVV
     if (!/^\d{3,4}$/.test(cvv)) {
       this.formError.set('CVV inválido (3-4 dígitos)');
       return false;
@@ -156,7 +159,13 @@ export class GuestCheckoutModalComponent {
 
     setTimeout(() => {
       this.onSubmit.emit({
-        address: this.addressForm,
+        email: this.addressForm.email,
+        address: {
+          direccion: this.addressForm.direccion,
+          codigoPostal: this.addressForm.codigoPostal,
+          ciudad: this.addressForm.ciudad,
+          pais: this.addressForm.pais,
+        },
         paymentMethod: {
           ...this.paymentForm,
           numeroTarjeta: this.paymentForm.numeroTarjeta.replace(/\s/g, ''),

@@ -11,7 +11,9 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
     req.url.includes('/v1/admin/platos')
   );
 
-  if (isPlatosReadRequest) {
+  const isGuestCheckout = req.method === 'POST' && req.url.includes('/v1/pedidos/guest');
+
+  if (isPlatosReadRequest || isGuestCheckout) {
     return next(req);
   }
 

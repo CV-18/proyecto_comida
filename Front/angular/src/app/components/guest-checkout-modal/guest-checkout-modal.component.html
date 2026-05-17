@@ -2,10 +2,13 @@
   <div class="fixed inset-0 z-50 flex items-center justify-center">
     <button type="button" class="absolute inset-0 bg-black/40" (click)="close()" aria-label="Cerrar modal"></button>
 
-    <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+    <div class="relative bg-white rounded-4xl border border-gray-200 shadow-xl max-w-2xl w-full mx-4 p-5 sm:p-8">
       <!-- Header -->
-      <div class="flex items-center justify-between border-b border-gray-200 p-6">
-        <h2 class="text-lg font-semibold text-gray-900">{{ 'checkout.guest' | translate }}</h2>
+      <div class="mb-6 flex items-center justify-between">
+        <div>
+          <h2 class="text-3xl font-bold text-gray-900 sm:text-4xl">{{ 'checkout.guest' | translate }}</h2>
+          <p class="mt-2 text-sm text-gray-600 sm:text-base">Introduce tus datos para completar el pedido.</p>
+        </div>
         <button type="button" class="text-gray-400 hover:text-gray-600" (click)="close()">
           <span class="sr-only">Cerrar</span>
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,26 +18,24 @@
       </div>
 
       <!-- Tabs -->
-      <div class="flex border-b border-gray-200">
+      <div class="flex border-b border-gray-200 mb-6">
         <button
           type="button"
           (click)="switchTab('address')"
-          [class.border-b-2]="activeTab() === 'address'"
-          [class.border-blue-500]="activeTab() === 'address'"
-          [class.text-blue-600]="activeTab() === 'address'"
-          [class.text-gray-600]="activeTab() !== 'address'"
-          class="flex-1 px-4 py-3 font-medium text-center"
+          [class.border-orange-500]="activeTab() === 'address'"
+          [class.text-orange-600]="activeTab() === 'address'"
+          [class.text-gray-500]="activeTab() !== 'address'"
+          class="flex-1 px-4 py-3 font-semibold text-center border-b-2 transition-colors"
         >
           {{ 'checkout.address' | translate }}
         </button>
         <button
           type="button"
           (click)="switchTab('payment')"
-          [class.border-b-2]="activeTab() === 'payment'"
-          [class.border-blue-500]="activeTab() === 'payment'"
-          [class.text-blue-600]="activeTab() === 'payment'"
-          [class.text-gray-600]="activeTab() !== 'payment'"
-          class="flex-1 px-4 py-3 font-medium text-center"
+          [class.border-orange-500]="activeTab() === 'payment'"
+          [class.text-orange-600]="activeTab() === 'payment'"
+          [class.text-gray-500]="activeTab() !== 'payment'"
+          class="flex-1 px-4 py-3 font-semibold text-center border-b-2 transition-colors"
         >
           {{ 'checkout.payment' | translate }}
         </button>
@@ -42,108 +43,89 @@
 
       <!-- Content -->
       <div class="p-6">
-        <!-- Error Message -->
         @if (formError()) {
-          <div class="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
-            <p class="text-sm text-red-700">{{ formError() }}</p>
+          <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-start gap-3 mb-4">
+            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+            <span>{{ formError() }}</span>
           </div>
         }
 
-        <!-- Address Tab -->
         @if (activeTab() === 'address') {
           <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ 'address.street' | translate }}</label>
+            <input
+              type="email"
+              [(ngModel)]="addressForm.email"
+              placeholder="tu@email.com"
+              class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-white placeholder:text-gray-400 focus:border-orange-400 focus:ring-4 focus:ring-orange-400/10 outline-none transition-all"
+            />
+            <input
+              type="text"
+              [(ngModel)]="addressForm.direccion"
+              placeholder="Calle y número"
+              class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-white placeholder:text-gray-400 focus:border-orange-400 focus:ring-4 focus:ring-orange-400/10 outline-none transition-all"
+            />
+            <div class="grid grid-cols-2 gap-3">
               <input
                 type="text"
-                [(ngModel)]="addressForm.direccion"
-                placeholder="Calle y número"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [(ngModel)]="addressForm.codigoPostal"
+                placeholder="12345"
+                class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-white placeholder:text-gray-400 focus:border-orange-400 focus:ring-4 focus:ring-orange-400/10 outline-none transition-all"
+              />
+              <input
+                type="text"
+                [(ngModel)]="addressForm.ciudad"
+                placeholder="Ciudad"
+                class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-white placeholder:text-gray-400 focus:border-orange-400 focus:ring-4 focus:ring-orange-400/10 outline-none transition-all"
               />
             </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">{{ 'address.postalCode' | translate }}</label>
-                <input
-                  type="text"
-                  [(ngModel)]="addressForm.codigoPostal"
-                  placeholder="12345"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">{{ 'address.city' | translate }}</label>
-                <input
-                  type="text"
-                  [(ngModel)]="addressForm.ciudad"
-                  placeholder="Ciudad"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ 'address.country' | translate }}</label>
-              <select
-                [(ngModel)]="addressForm.pais"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                @for (country of countries; track country) {
-                  <option [value]="country">{{ country }}</option>
-                }
-              </select>
-            </div>
+            <select
+              [(ngModel)]="addressForm.pais"
+              class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-white placeholder:text-gray-400 focus:border-orange-400 focus:ring-4 focus:ring-orange-400/10 outline-none transition-all"
+            >
+              @for (country of countries; track country) {
+                <option [value]="country">{{ country }}</option>
+              }
+            </select>
           </div>
         }
 
-        <!-- Payment Tab -->
         @if (activeTab() === 'payment') {
           <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ 'payment.cardType' | translate }}</label>
-              <select
-                [(ngModel)]="paymentForm.tipo"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                @for (type of cardTypes; track type) {
-                  <option [value]="type">{{ type }}</option>
-                }
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ 'payment.cardNumber' | translate }}</label>
+            <select
+              [(ngModel)]="paymentForm.tipo"
+              class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-white placeholder:text-gray-400 focus:border-orange-400 focus:ring-4 focus:ring-orange-400/10 outline-none transition-all"
+            >
+              @for (type of cardTypes; track type) {
+                <option [value]="type">{{ type }}</option>
+              }
+            </select>
+            <input
+              type="text"
+              placeholder="1234 5678 9012 3456"
+              maxlength="19"
+              (input)="formatCardNumber($event)"
+              [value]="paymentForm.numeroTarjeta"
+              class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-white placeholder:text-gray-400 focus:border-orange-400 focus:ring-4 focus:ring-orange-400/10 outline-none transition-all"
+            />
+            <div class="grid grid-cols-2 gap-3">
               <input
                 type="text"
-                placeholder="1234 5678 9012 3456"
-                maxlength="19"
-                (input)="formatCardNumber($event)"
-                [value]="paymentForm.numeroTarjeta"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="MM/YY"
+                maxlength="5"
+                (input)="formatExpiration($event)"
+                [value]="paymentForm.fechaExpiracion"
+                class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-white placeholder:text-gray-400 focus:border-orange-400 focus:ring-4 focus:ring-orange-400/10 outline-none transition-all"
               />
-              <p class="text-xs text-gray-500 mt-1">{{ 'payment.cardNotSaved' | translate }}</p>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">{{ 'payment.expiration' | translate }}</label>
-                <input
-                  type="text"
-                  placeholder="MM/YY"
-                  maxlength="5"
-                  (input)="formatExpiration($event)"
-                  [value]="paymentForm.fechaExpiracion"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">{{ 'payment.cvv' | translate }}</label>
-                <input
-                  type="text"
-                  placeholder="123"
-                  maxlength="4"
-                  (input)="formatCVV($event)"
-                  [value]="paymentForm.cvv"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              <input
+                type="text"
+                placeholder="123"
+                maxlength="4"
+                (input)="formatCVV($event)"
+                [value]="paymentForm.cvv"
+                class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-white placeholder:text-gray-400 focus:border-orange-400 focus:ring-4 focus:ring-orange-400/10 outline-none transition-all"
+              />
             </div>
           </div>
         }
@@ -154,7 +136,7 @@
         <button
           type="button"
           (click)="close()"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50"
+          class="flex-1 px-4 py-3.5 rounded-2xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50"
         >
           {{ 'nav.cancel' | translate }}
         </button>
@@ -162,7 +144,7 @@
           <button
             type="button"
             (click)="switchTab('payment')"
-            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+            class="flex-1 px-4 py-3.5 rounded-2xl bg-linear-to-r from-orange-500 to-amber-500 text-white font-semibold hover:from-orange-600 hover:to-amber-600 disabled:opacity-70 shadow-lg shadow-orange-500/20"
           >
             {{ 'checkout.next' | translate }}
           </button>
@@ -171,7 +153,7 @@
             type="button"
             (click)="submit()"
             [disabled]="isProcessing()"
-            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex-1 px-4 py-3.5 rounded-2xl bg-linear-to-r from-orange-500 to-amber-500 text-white font-semibold hover:from-orange-600 hover:to-amber-600 disabled:opacity-70 shadow-lg shadow-orange-500/20"
           >
             @if (isProcessing()) {
               {{ 'checkout.processing' | translate }}

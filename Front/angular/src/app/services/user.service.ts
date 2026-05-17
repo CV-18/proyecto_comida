@@ -6,10 +6,10 @@ import { AuthService } from './auth.service';
 import { PaymentService } from './payment.service';
 import { AddressService } from './address.service';
 import { UsuarioResponse, UsuarioService } from './usuario.service';
-import { BackendOrderResponse, OrderBackendService } from './order-backend.service';
+import { BackendOrderResponse, CreateOrderItemRequest, OrderBackendService } from './order-backend.service';
 
 export interface OrderItem {
-  dishId?: string;
+  platoId: number;
   name: string;
   quantity: number;
 }
@@ -383,7 +383,7 @@ export class UserService {
     return true;
   }
 
-  createOrder(items: OrderItem[], total: number): Order {
+  createOrder(items: CreateOrderItemRequest[], total: number): Order {
     const username = this.user()?.username?.trim() || 'guest';
 
     const newOrder: Order = {
@@ -392,7 +392,7 @@ export class UserService {
       total: total,
       username,
       status: 'Pendiente',
-      items,
+      items: items.map(item => ({ ...item, platoId: Number(item.platoId) })),
       itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
     };
 
@@ -401,7 +401,7 @@ export class UserService {
   }
 
   createAndStoreOrder(
-    items: OrderItem[],
+    items: CreateOrderItemRequest[],
     total: number,
     paymentMethodId: number,
     pricing?: { subtotal?: number; discount?: number; shipping?: number }
@@ -425,7 +425,7 @@ export class UserService {
 
   private mapBackendOrder(
     backendOrder: BackendOrderResponse,
-    fallbackItems: OrderItem[],
+    fallbackItems: CreateOrderItemRequest[],
     fallbackTotal: number
   ): Order {
     const username =
@@ -437,14 +437,14 @@ export class UserService {
       ? backendOrder.items.map((item) => {
           const name = (item.name ?? item.nombre ?? 'Producto').toString();
           const quantity = Number(item.quantity ?? item.cantidad ?? 1);
-          const dishIdRaw = item.dishId ?? item.platoId ?? item.idPlato ?? item.id;
+          const platoIdRaw = item.platoId ?? item.dishId ?? item.idPlato ?? item.id;
           return {
-            dishId: dishIdRaw !== undefined && dishIdRaw !== null ? String(dishIdRaw) : undefined,
+            platoId: Number(platoIdRaw),
             name,
             quantity: Number.isFinite(quantity) ? quantity : 1,
           };
         })
-      : fallbackItems;
+      : fallbackItems.map(item => ({ ...item, platoId: Number(item.platoId) }));
 
     const itemCountFromApi = Number(backendOrder.itemCount ?? backendOrder.cantidadItems);
     const itemCount = Number.isFinite(itemCountFromApi) && itemCountFromApi > 0
@@ -531,21 +531,14 @@ export class UserService {
 
   // ==================== DIRECCIONES ====================
 
-  addAddress(address: AddressCreateRequest): Observable<Address> {
-    return this.addressService.create(address).pipe(
-      tap((created) => {
-        this.addresses.update((prev) => {
-          const makeDefault = prev.length === 0 || !prev.some(a => a.isDefault);
-          const final = makeDefault ? { ...created, isDefault: true } : created;
-          const updatedPrev = makeDefault
-            ? prev.map(a => ({ ...a, isDefault: false }))
-            : prev;
-
-          if (makeDefault) {
-            this.defaultAddressId.set(final.id ?? null);
-          }
-
-          return [...updatedPrev, final];
+  addAddress(address: AddressCreateRequest): Observable<UsuarioResponse> {
+    return this.usuarioService.updateMe(address).pipe(
+      tap((updatedUser) => {
+        this.updateUser({
+          address: updatedUser.direccion,
+          codigoPostal: updatedUser.codigoPostal,
+          ciudad: updatedUser.ciudad,
+          pais: updatedUser.pais,
         });
       })
     );
