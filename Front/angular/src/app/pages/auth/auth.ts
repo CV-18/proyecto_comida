@@ -2,8 +2,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
-import { of } from 'rxjs';
-import { catchError, filter, finalize, timeout } from 'rxjs/operators';
+import { filter, finalize, timeout } from 'rxjs/operators';
 import { UserService } from '../../services/user.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 import { AuthService } from '../../services/auth.service';
@@ -85,10 +84,6 @@ export class Auth implements OnInit {
         username: this.form.username,
         password: this.form.password
       }).pipe(
-        catchError((error: unknown) => {
-          this.formError = this.getBackendErrorMessage(error, 'Usuario o contraseña incorrectos.');
-          return of(null);
-        }),
         timeout(10000),
         finalize(() => {
           this.isLoading = false;
@@ -96,15 +91,14 @@ export class Auth implements OnInit {
         })
       ).subscribe({
         next: (res) => {
-          if (!res) {
-            return;
-          }
-
           this.authService.saveToken(res.token);
           this.userService.login();
           void this.router.navigateByUrl('/cuenta');
         },
-        error: () => undefined
+        error: (error: unknown) => {
+          this.formError = this.getBackendErrorMessage(error, 'Usuario o contraseña incorrectos.');
+          this.cdr.detectChanges();
+        }
       });
       return;
     }
@@ -122,26 +116,21 @@ export class Auth implements OnInit {
       ciudad: '',
       pais: ''
     }).pipe(
-      catchError((error: unknown) => {
-        this.formError = this.getBackendErrorMessage(error, 'Error al crear la cuenta. Inténtalo de nuevo.');
-        return of(null);
-      }),
       timeout(10000),
       finalize(() => {
         this.isLoading = false;
-          this.cdr.detectChanges();
+        this.cdr.detectChanges();
       })
     ).subscribe({
       next: (res) => {
-        if (!res) {
-          return;
-        }
-
         this.authService.saveToken(res.token);
         this.userService.login();
         void this.router.navigateByUrl('/cuenta');
       },
-      error: () => undefined
+      error: (error: unknown) => {
+        this.formError = this.getBackendErrorMessage(error, 'Error al crear la cuenta. Inténtalo de nuevo.');
+        this.cdr.detectChanges();
+      }
     });
   }
 

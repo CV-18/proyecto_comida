@@ -7,19 +7,17 @@ import { OrderService } from '../../services/order.service';
 import { TranslateService } from '../../services/translate.service';
 import { PaymentModal } from '../payment-modal/payment-modal';
 import { AddressModalComponent } from '../address-modal/address-modal.component';
-import { GuestCheckoutModalComponent, GuestCheckoutData } from '../guest-checkout-modal/guest-checkout-modal.component';
 import { finalize } from 'rxjs';
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-cart-drawer',
-  imports: [CurrencyPipe, TranslatePipe, PaymentModal, AddressModalComponent, GuestCheckoutModalComponent],
+  imports: [CurrencyPipe, TranslatePipe, PaymentModal, AddressModalComponent],
   templateUrl: './cart-drawer.html',
 })
 export class CartDrawer {
   @ViewChild(PaymentModal) paymentModal!: PaymentModal;
   @ViewChild(AddressModalComponent) addressModal!: AddressModalComponent;
-  @ViewChild(GuestCheckoutModalComponent) guestCheckoutModal!: GuestCheckoutModalComponent;
 
   isProcessing = signal(false);
   errorMessage = signal<string | null>(null);
