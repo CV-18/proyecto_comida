@@ -1,4 +1,5 @@
 import { Component, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe } from '../../pipes/translate.pipe';
@@ -12,6 +13,7 @@ import {
 
 @Component({
   selector: 'app-payment-modal',
+  standalone: true,
   imports: [CommonModule, FormsModule, TranslatePipe],
   templateUrl: './payment-modal.html',
   styleUrl: './payment-modal.css',
@@ -21,6 +23,26 @@ export class PaymentModal {
   isSubmitting = signal(false);
   errorMessage = signal<string | null>(null);
   editingPaymentId = signal<number | null>(null);
+  readonly paymentTypeOptions: { value: TipoMetodoPago; title: string; subtitle: string; accent: string }[] = [
+    {
+      value: 'TARJETA_CREDITO',
+      title: 'Crédito',
+      subtitle: 'Rápida y común',
+      accent: 'from-amber-400 to-orange-500',
+    },
+    {
+      value: 'TARJETA_DEBITO',
+      title: 'Débito',
+      subtitle: 'Cargo directo',
+      accent: 'from-emerald-400 to-teal-500',
+    },
+    {
+      value: 'PAYPAL',
+      title: 'PayPal',
+      subtitle: 'Cuenta online',
+      accent: 'from-sky-400 to-blue-500',
+    },
+  ];
 
   formData = {
     tipo: 'TARJETA_CREDITO' as TipoMetodoPago,
@@ -31,6 +53,46 @@ export class PaymentModal {
   };
 
   constructor(private userService: UserService) {}
+
+  get isEditMode(): boolean {
+    return this.editingPaymentId() !== null;
+  }
+
+  get modalTitle(): string {
+    return this.isEditMode ? 'Editar método de pago' : 'Añadir método de pago';
+  }
+
+  get modalSubtitle(): string {
+    return this.isEditMode
+      ? 'Ajusta los datos de tu método guardado.'
+      : 'Guarda una tarjeta en segundos para pagar más rápido.';
+  }
+
+  get selectedPaymentTypeLabel(): string {
+    switch (this.formData.tipo) {
+      case 'TARJETA_DEBITO':
+        return 'Débito';
+      case 'PAYPAL':
+        return 'PayPal';
+      default:
+        return 'Crédito';
+    }
+  }
+
+  get cardPreviewNumber(): string {
+    const digits = this.formData.numeroTarjeta.replace(/\D/g, '');
+    if (!digits) return '•••• •••• •••• ••••';
+    const groups = digits.match(/.{1,4}/g) ?? [digits];
+    return groups.join(' ').padEnd(19, '•');
+  }
+
+  get cardPreviewName(): string {
+    return this.formData.nombreTitular.trim().toUpperCase() || 'NOMBRE APELLIDO';
+  }
+
+  get cardPreviewExpiry(): string {
+    return this.formData.fechaExpiracion.trim() || 'MM/AA';
+  }
 
   open(): void {
     this.openForCreate();
@@ -67,6 +129,37 @@ export class PaymentModal {
     this.isOpen.set(false);
     this.resetForm();
     this.errorMessage.set(null);
+  }
+
+  setPaymentType(tipo: TipoMetodoPago): void {
+    this.formData.tipo = tipo;
+    if (tipo === 'PAYPAL') {
+      this.formData.numeroTarjeta = this.formData.numeroTarjeta.replace(/\s/g, '');
+    }
+  }
+
+  onCardNumberInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digits = input.value.replace(/\D/g, '').slice(0, 19);
+    const formatted = digits.match(/.{1,4}/g)?.join(' ') ?? digits;
+    this.formData.numeroTarjeta = formatted;
+    input.value = formatted;
+  }
+
+  onExpiryInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digits = input.value.replace(/\D/g, '').slice(0, 4);
+    const formatted = digits.length >= 3
+      ? `${digits.slice(0, 2)}/${digits.slice(2)}`
+      : digits;
+    this.formData.fechaExpiracion = formatted;
+    input.value = formatted;
+  }
+
+  onNameInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.formData.nombreTitular = input.value.toUpperCase();
+    input.value = this.formData.nombreTitular;
   }
 
   private resetForm(): void {
@@ -134,10 +227,44 @@ export class PaymentModal {
 
     request$.subscribe({
       next: () => this.close(),
-      error: () => {
-        this.errorMessage.set('No se pudo guardar el método de pago');
+      error: (error) => {
+        this.errorMessage.set(this.getSaveErrorMessage(error));
         this.isSubmitting.set(false);
       },
     });
+  }
+
+  private getSaveErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message === 'ADMIN_CANNOT_ADD_PAYMENT_METHODS') {
+      return 'Los administradores no pueden añadir tarjetas manualmente.';
+    }
+
+    if (error instanceof HttpErrorResponse) {
+      const body = error.error;
+
+      if (typeof body === 'string' && body.trim()) {
+        return body.trim();
+      }
+
+      if (body && typeof body === 'object') {
+        const details = body as Record<string, unknown>;
+        const message = [details['message'], details['errorMessage'], details['detail'], details['title'], details['error']]
+          .find((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+        if (message) {
+          return message;
+        }
+      }
+
+      if (error.status === 400) {
+        return 'La tarjeta no se ha podido guardar. Revisa el número, la fecha y el CVV.';
+      }
+
+      if (error.status === 401 || error.status === 403) {
+        return 'No tienes permisos para guardar este método de pago.';
+      }
+    }
+
+    return 'No se pudo guardar el método de pago';
   }
 }

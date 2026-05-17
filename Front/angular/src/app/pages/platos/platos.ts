@@ -10,15 +10,6 @@ import type { PlatoResponse } from '../../services/catalog-admin.service';
 
 type PlatosViewItem = CartItem & { country: string; isPremium: boolean; description: string; rating: number };
 
-const platoImages = [
-  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1564759224907-65b945ff0e84?q=80&w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1553621042-f6e147245754?q=80&w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1515136814290-75d6d6a5f3f7?q=80&w=1200&auto=format&fit=crop',
-];
-
 @Component({
   selector: 'app-platos',
   imports: [CurrencyPipe, RouterLink, TranslatePipe],
@@ -69,7 +60,7 @@ export class Platos {
   private loadPlatos(): void {
     this.catalogService.listPlatos().subscribe({
       next: (platos) => {
-        this.platos = platos.map((plato, index) => this.toViewItem(plato, index));
+        this.platos = platos.map((plato) => this.toViewItem(plato));
         this.cdr.detectChanges();
       },
       error: () => {
@@ -79,14 +70,14 @@ export class Platos {
     });
   }
 
-  private toViewItem(plato: PlatoResponse, index: number): PlatosViewItem {
+  private toViewItem(plato: PlatoResponse): PlatosViewItem {
     return {
       id: String(plato.id),
       name: plato.nombre,
       country: this.mapCountry(plato.pais),
       price: plato.precio,
       quantity: 1,
-      image: platoImages[index % platoImages.length],
+      image: '',
       isPremium: plato.isPremium,
       description: plato.descripcion,
       rating: this.computeRating(plato.id, plato.precio),
@@ -116,14 +107,15 @@ export class Platos {
   }
 
   get filteredPlatos() {
+    const normalizedActive = this.normalizeCountry(this.activeFilter);
     return this.platos.filter((plate) => {
       const matchesFilter =
         this.activeFilter === 'Todos'
           ? true
           : this.activeFilter === 'Premium'
-            ? plate.isPremium
-            : plate.country === this.activeFilter;
-      const matchesSearch = plate.name.toLowerCase().includes(this.search.toLowerCase());
+            ? Boolean(plate.isPremium)
+            : this.normalizeCountry(plate.country) === normalizedActive;
+      const matchesSearch = plate.name?.toLowerCase().includes(this.search.toLowerCase());
       return matchesFilter && matchesSearch;
     });
   }

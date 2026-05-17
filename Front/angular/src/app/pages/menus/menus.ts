@@ -34,13 +34,20 @@ interface MenuSlot {
   allowedCategories: PlatoResponse['categoria'][];
 }
 
-const dishImages = [
-  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1564759224907-65b945ff0e84?q=80&w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1553621042-f6e147245754?q=80&w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1515136814290-75d6d6a5f3f7?q=80&w=1200&auto=format&fit=crop',
+const menuImagesByCountry: Record<Exclude<MenuScope, 'Todos'>, string> = {
+  Espanol: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Paella_negra.jpg/640px-Paella_negra.jpg',
+  Mexicano: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=1400&h=800&fit=crop',
+  Italiano: 'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?w=1400&h=800&fit=crop',
+  Japones: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=1400&h=800&fit=crop',
+  Indio: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=1400&h=800&fit=crop',
+  Griego: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1400&h=800&fit=crop',
+};
+
+const premiumMenuImages = [
+  'https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=1400&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1559628233-100c798642d4?q=80&w=1400&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1400&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?q=80&w=1400&auto=format&fit=crop',
 ];
 
 @Component({
@@ -126,6 +133,10 @@ export class Menus implements OnInit {
     return Math.max(1, Math.ceil(this.filteredModalDishes.length / this.pageSize));
   }
 
+  get menuCoverImage(): string {
+    return this.getMenuImage();
+  }
+
   get modalPageStart(): number {
     return this.filteredModalDishes.length === 0 ? 0 : (this.modalPage - 1) * this.pageSize + 1;
   }
@@ -138,7 +149,7 @@ export class Menus implements OnInit {
     this.isLoading = true;
     this.catalogService.listPlatos().subscribe({
       next: (platos) => {
-        this.dishes = platos.map((plato, index) => this.toMenuDish(plato, index));
+        this.dishes = platos.map((plato) => this.toMenuDish(plato));
         this.isLoading = false;
         this.cdr.detectChanges();
       },
@@ -151,13 +162,13 @@ export class Menus implements OnInit {
     });
   }
 
-  private toMenuDish(plato: PlatoResponse, index: number): MenuDish {
+  private toMenuDish(plato: PlatoResponse): MenuDish {
     return {
       id: String(plato.id),
       name: plato.nombre,
       price: plato.precio,
       quantity: 1,
-      image: dishImages[index % dishImages.length],
+      image: plato.image ?? this.getDishImage(plato),
       country: this.mapCountry(plato.pais),
       tipo: plato.tipo,
       categoria: plato.categoria,
@@ -257,7 +268,7 @@ export class Menus implements OnInit {
       name: `Menú ${this.getCountryLabel(this.activeCategory)} personalizado`,
       price: this.menuPrice,
       quantity: 1,
-      image: entrada.image,
+      image: this.getMenuImage(),
       isPremium: this.selectedDishes.some((dish) => dish.isPremium),
     };
 
@@ -277,5 +288,37 @@ export class Menus implements OnInit {
       case 'Espanol':
       default:         return 'Español';
     }
+  }
+
+  private getMenuImage(): string {
+    if (this.userService.isPremium()) {
+      const seed = `${this.activeCategory}-${this.selectedDishes.map((dish) => dish.id).join('-') || 'sin-platos'}`;
+      const index = Math.abs(this.hashSeed(seed)) % premiumMenuImages.length;
+      return premiumMenuImages[index];
+    }
+
+    const countryKey = this.activeCategory === 'Todos' ? 'Espanol' : this.activeCategory;
+    return menuImagesByCountry[countryKey as Exclude<MenuScope, 'Todos'>];
+  }
+
+  private getDishImage(plato: PlatoResponse): string {
+    switch (plato.pais) {
+      case 'MEXICANO': return 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800&fit=crop'; // tacos
+      case 'ITALIANO': return 'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?w=800&fit=crop'; // pizza
+      case 'JAPONES': return 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&fit=crop'; // sushi
+      case 'INDIO': return 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=800&fit=crop'; // curry
+      case 'GRIEGO': return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&fit=crop'; // comida griega
+      case 'ESPANOL':
+      default: return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiB2aWV3Qm94PSIwIDAgODAwIDYwMCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2Y1ZDViOCIvPjxjaXJjbGUgY3g9IjQwMCIgY3k9IjMwMCIgcj0iMjAwIiBmaWxsPSIjZGI5MTI4Ii8+PGNpcmNsZSBjeD0iMzYwIiBjeT0iMjgwIiByPSIyNSIgZmlsbD0iI2VmNTM1MCIvPjxjaXJjbGUgY3g9IjQyMCIgY3k9IjI3MCIgcj0iMjUiIGZpbGw9IiNlZjUzNTAiLz48Y2lyY2xlIGN4PSI0MDAiIGN5PSIyNTAiIHI9IjIwIiBmaWxsPSIjMjI5OWQwIi8+PC9zdmc+'; // paella
+    }
+  }
+
+  private hashSeed(value: string): number {
+    let hash = 0;
+    for (let index = 0; index < value.length; index += 1) {
+      hash = (hash << 5) - hash + value.charCodeAt(index);
+      hash |= 0;
+    }
+    return hash;
   }
 }

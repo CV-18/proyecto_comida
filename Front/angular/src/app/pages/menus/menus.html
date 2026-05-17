@@ -23,6 +23,9 @@
 
 				<div class="border-t border-white/10 bg-white/5 p-8 sm:p-10 lg:border-l lg:border-t-0">
 					<div class="rounded-[1.5rem] border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+						<div class="mb-5 overflow-hidden rounded-3xl border border-white/10 bg-black/20">
+							<img [src]="menuCoverImage" alt="Imagen del menú" class="h-44 w-full object-cover" />
+						</div>
 						<p class="text-xs uppercase tracking-[0.25em] text-gray-300">Resumen del menú</p>
 						<div class="mt-4 flex items-end justify-between gap-4">
 							<div>
@@ -84,7 +87,7 @@
 
 			@if (!userService.isPremium() && selectedDishes.length > 0) {
 				<div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-					<p class="text-sm text-amber-900"><span class="font-semibold">Solo usuarios premium</span> pueden mezclar platos de diferentes países. Tu menú se crea solo con platos de <strong>{{ ('common.countries.' + activeCategory.toLowerCase()) | translate }}</strong>.</p>
+					<p class="text-sm text-amber-900"><span class="font-semibold">Solo usuarios premium</span> pueden mezclar platos de diferentes países. Tu menú se crea solo con platos de <strong>{{ activeCategory.toLowerCase().replace('ñ','n') === 'espanol' ? 'español' : (('common.countries.' + activeCategory.toLowerCase()) | translate) }}</strong>.</p>
 				</div>
 			}
 		</div>
@@ -94,9 +97,9 @@
 				<h2 class="text-2xl font-bold text-gray-900">Platos de selección</h2>
 				<p class="text-sm text-gray-500">Pulsa un plato para abrir la ventana emergente con los platos disponibles.</p>
 			</div>
-			<div class="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-600 shadow-sm">
-				{{ ('common.countries.' + activeCategory.toLowerCase()) | translate }}
-			</div>
+				<div class="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-600 shadow-sm">
+					{{ activeCategory.toLowerCase().replace('ñ','n') === 'espanol' ? 'español' : (('common.countries.' + activeCategory.toLowerCase()) | translate) }}
+				</div>
 		</div>
 
 		@if (activeCategory === 'Todos') {
@@ -128,7 +131,7 @@
 									<div class="flex items-center justify-between gap-3">
 										<div>
 											<p class="font-semibold text-gray-900">{{ selectedDishBySlot[slot.id]?.name }}</p>
-											<p class="text-xs text-gray-500">{{ ('common.countries.' + selectedDishBySlot[slot.id]!.country.toLowerCase()) | translate }}</p>
+											<p class="text-xs text-gray-500">{{ selectedDishBySlot[slot.id]!.country.toLowerCase().replace('ñ','n') === 'espanol' ? 'español' : (('common.countries.' + selectedDishBySlot[slot.id]!.country.toLowerCase()) | translate) }}</p>
 										</div>
 										<p class="font-bold text-gray-900">{{ selectedDishBySlot[slot.id]?.price | currency:translateService.currencyCode }}</p>
 									</div>
@@ -187,7 +190,7 @@
 										<img [src]="dish.image" [alt]="dish.name" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
 										<div class="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent"></div>
 										<div class="absolute left-4 top-4 flex gap-2">
-											<span class="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-gray-900">{{ ('common.countries.' + dish.country.toLowerCase()) | translate }}</span>
+											<span class="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-gray-900">{{ dish.country.toLowerCase().replace('ñ','n') === 'espanol' ? 'español' : (('common.countries.' + dish.country.toLowerCase()) | translate) }}</span>
 											@if (dish.isPremium) {
 												<span class="rounded-full bg-amber-400 px-3 py-1 text-xs font-semibold text-gray-950">Premium</span>
 											}

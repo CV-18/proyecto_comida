@@ -7,6 +7,10 @@ import { CatalogAdminService, type PlatoCreateRequest, type PlatoResponse, type 
 
 type StatusState = 'idle' | 'saving' | 'success' | 'error';
 
+type PlatoForm = PlatoCreateRequest & {
+  imageUrl: string;
+};
+
 @Component({
   selector: 'app-admin',
   imports: [FormsModule, RouterLink, CurrencyPipe],
@@ -38,7 +42,7 @@ export class Admin {
   readonly premiumCount = computed(() => this.platos().filter(p => p.isPremium).length);
 
   // ── Formulario (no necesita signal, ngModel lo gestiona) ──
-  platoForm: PlatoCreateRequest = this.emptyForm();
+  platoForm: PlatoForm = this.emptyForm();
 
   constructor(
     private readonly catalogAdminService: CatalogAdminService,
@@ -105,6 +109,7 @@ export class Admin {
       precio:      plato.precio,
       cantidad:    plato.cantidad,
       isPremium:   plato.isPremium,
+      imageUrl:    plato.image ?? '',
     };
     this.platoStatus.set('idle');
     this.platoMessage.set('');
@@ -126,11 +131,15 @@ export class Admin {
 
     const editId = this.editingPlatoId();
     const payload = {
-      ...this.platoForm,
       nombre:      this.platoForm.nombre.trim(),
       descripcion: this.platoForm.descripcion.trim(),
+      tipo:        this.platoForm.tipo,
+      categoria:   this.platoForm.categoria,
+      pais:        this.platoForm.pais,
+      variante:    this.platoForm.variante,
       precio:      Number(this.platoForm.precio),
       cantidad:    Number(this.platoForm.cantidad),
+      isPremium:   this.platoForm.isPremium,
     };
 
     const request$ = editId === null
@@ -139,6 +148,8 @@ export class Admin {
 
     request$.subscribe({
       next: (saved) => {
+        this.catalogAdminService.saveLocalImage(saved.id, this.platoForm.imageUrl);
+
         // Actualiza el signal localmente sin volver a llamar al back
         if (editId === null) {
           this.platos.update(prev => [...prev, saved]);
@@ -212,7 +223,7 @@ export class Admin {
   }
 
   // ── Helpers ───────────────────────────────────────────
-  private emptyForm(): PlatoCreateRequest {
+  private emptyForm(): PlatoForm {
     return {
       nombre:      '',
       descripcion: '',
@@ -223,6 +234,7 @@ export class Admin {
       precio:      0,
       cantidad:    1,
       isPremium:   false,
+      imageUrl:    '',
     };
   }
 

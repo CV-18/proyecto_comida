@@ -1,177 +1,111 @@
 @if (isOpen()) {
-	<div class="fixed inset-0 z-50 flex items-center justify-center">
-		<button
-			type="button"
-			class="absolute inset-0 bg-black/50"
-			(click)="close()"
-			aria-label="Cerrar modal"
-		></button>
+	<div class="fixed inset-0 z-50 flex items-center justify-center px-4 py-5">
+		<button type="button" class="absolute inset-0 bg-slate-950/60" (click)="close()" aria-label="Cerrar modal"></button>
 
-		<div class="relative bg-white rounded-lg shadow-2xl p-6 w-full max-w-md mx-4">
-			<!-- Header -->
-			<div class="flex items-center justify-between mb-4 border-b border-gray-200 pb-4">
-				<h2 class="text-xl font-bold text-gray-900">
-					@if (editingPaymentId()) {
-						Editar método de pago
-					} @else {
-						{{ 'payment.add_card' | translate }}
+		<div class="relative w-full max-w-5xl overflow-hidden rounded-[1.75rem] border border-white/20 bg-white shadow-[0_35px_100px_rgba(15,23,42,0.28)]">
+			<div class="grid lg:grid-cols-[0.95fr_1.05fr]">
+				<section class="relative overflow-hidden bg-linear-to-br from-slate-950 via-slate-900 to-amber-950 p-5 sm:p-7 text-white">
+					<div class="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-amber-400/15 blur-3xl"></div>
+					<div class="absolute -bottom-20 -left-12 h-40 w-40 rounded-full bg-sky-400/10 blur-3xl"></div>
+
+					<div class="relative flex items-start justify-between gap-3">
+						<div>
+							<p class="text-[10px] font-semibold uppercase tracking-[0.3em] text-amber-200/70">Método de pago</p>
+							<h2 class="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">{{ modalTitle }}</h2>
+							<p class="mt-2 max-w-sm text-sm leading-6 text-slate-300">{{ modalSubtitle }}</p>
+						</div>
+
+						<button type="button" class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-white/80 transition hover:bg-white/15 hover:text-white" (click)="close()" aria-label="Cerrar">×</button>
+					</div>
+
+					<div class="relative mt-6 rounded-[1.35rem] border border-white/10 bg-white/10 p-4 shadow-xl backdrop-blur-md">
+						<div class="flex items-center justify-between text-[10px] uppercase tracking-[0.24em] text-white/55">
+							<span>Vista previa</span>
+							<span>{{ selectedPaymentTypeLabel }}</span>
+						</div>
+
+						<p class="mt-6 font-mono text-lg tracking-[0.18em] text-white sm:text-xl">{{ cardPreviewNumber }}</p>
+
+						<div class="mt-6 flex items-end justify-between gap-4">
+							<div>
+								<p class="text-[10px] uppercase tracking-[0.24em] text-white/50">Titular</p>
+								<p class="mt-1 text-sm font-semibold tracking-wide text-white">{{ cardPreviewName }}</p>
+							</div>
+							<div class="text-right">
+								<p class="text-[10px] uppercase tracking-[0.24em] text-white/50">Expira</p>
+								<p class="mt-1 font-mono text-sm text-white">{{ cardPreviewExpiry }}</p>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<section class="bg-slate-50 p-5 sm:p-7">
+					@if (errorMessage()) {
+						<div class="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+							{{ errorMessage() }}
+						</div>
 					}
-				</h2>
-				<button
-					type="button"
-					class="text-gray-500 hover:text-gray-700 text-2xl"
-					(click)="close()"
-				>
-					×
-				</button>
+
+					<form (ngSubmit)="submitPaymentMethod()" class="space-y-5">
+						<div>
+							<label class="mb-2 block text-sm font-semibold text-slate-700">Tipo de método</label>
+							<div class="grid gap-2 sm:grid-cols-3">
+								@for (option of paymentTypeOptions; track option.value) {
+									<label class="cursor-pointer rounded-2xl border p-3 transition-all"
+										[ngClass]="formData.tipo === option.value ? 'border-transparent bg-white shadow-[0_10px_24px_rgba(15,23,42,0.12)] ring-2 ring-amber-400/60' : 'border-slate-200 bg-white hover:border-slate-300'">
+										<input type="radio" name="cardType" [value]="option.value" [(ngModel)]="formData.tipo" class="sr-only" (click)="setPaymentType(option.value)" />
+										<p class="text-sm font-semibold text-slate-900">{{ option.title }}</p>
+										<p class="mt-1 text-[11px] text-slate-500">{{ option.subtitle }}</p>
+									</label>
+								}
+							</div>
+						</div>
+
+						<div class="grid gap-4 sm:grid-cols-2">
+							<div class="sm:col-span-2">
+								<label class="mb-2 block text-sm font-semibold text-slate-700">Número de tarjeta</label>
+								<input type="text" [(ngModel)]="formData.numeroTarjeta" name="cardNumber" placeholder="1234 5678 9012 3456" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-400/15" [disabled]="isSubmitting()" (input)="onCardNumberInput($event)" />
+							</div>
+
+							<div>
+								<label class="mb-2 block text-sm font-semibold text-slate-700">Titular</label>
+								<input type="text" [(ngModel)]="formData.nombreTitular" name="cardHolder" placeholder="NOMBRE APELLIDO" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 uppercase tracking-wide text-slate-900 outline-none transition placeholder:tracking-normal focus:border-amber-400 focus:ring-4 focus:ring-amber-400/15" [disabled]="isSubmitting()" (input)="onNameInput($event)" />
+							</div>
+
+							<div>
+								<label class="mb-2 block text-sm font-semibold text-slate-700">Expiración</label>
+								<input type="text" [(ngModel)]="formData.fechaExpiracion" name="expiry" placeholder="MM/AA" maxlength="5" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-400/15" [disabled]="isSubmitting()" (input)="onExpiryInput($event)" />
+							</div>
+
+							<div>
+								<label class="mb-2 block text-sm font-semibold text-slate-700">CVV</label>
+								<input type="password" [(ngModel)]="formData.cvv" name="cvv" placeholder="123" maxlength="4" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-400/15" [disabled]="isSubmitting()" />
+							</div>
+						</div>
+
+						<div class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700">
+							💡 {{ 'payment.card_saved' | translate }}
+						</div>
+
+						<div class="flex gap-3 pt-1">
+							<button type="button" (click)="close()" class="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60" [disabled]="isSubmitting()">
+								{{ 'nav.cancel' | translate }}
+							</button>
+							<button type="submit" class="flex-1 rounded-2xl bg-linear-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:from-amber-600 hover:to-orange-600 disabled:cursor-not-allowed disabled:opacity-60" [disabled]="isSubmitting()">
+								@if (isSubmitting()) {
+									Procesando...
+								} @else {
+									@if (isEditMode) {
+										Guardar cambios
+									} @else {
+										{{ 'payment.add_card' | translate }}
+									}
+								}
+							</button>
+						</div>
+					</form>
+				</section>
 			</div>
-
-			<!-- Error Message -->
-			@if (errorMessage()) {
-				<div class="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
-					<p class="text-sm text-red-700">{{ errorMessage() }}</p>
-				</div>
-			}
-
-			<!-- Form -->
-			<form (ngSubmit)="submitPaymentMethod()" class="space-y-4">
-				<!-- Card Type Selection -->
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
-						{{ 'payment.card_type' | translate }}
-					</label>
-					<div class="flex gap-4">
-						<label class="flex items-center">
-							<input
-								type="radio"
-								value="TARJETA_CREDITO"
-								[(ngModel)]="formData.tipo"
-								name="cardType"
-								class="mr-2"
-							/>
-							<span class="text-sm text-gray-700">Tarjeta de crédito</span>
-						</label>
-						<label class="flex items-center">
-							<input
-								type="radio"
-								value="TARJETA_DEBITO"
-								[(ngModel)]="formData.tipo"
-								name="cardType"
-								class="mr-2"
-							/>
-							<span class="text-sm text-gray-700">Tarjeta de débito</span>
-						</label>
-						<label class="flex items-center">
-							<input
-								type="radio"
-								value="PAYPAL"
-								[(ngModel)]="formData.tipo"
-								name="cardType"
-								class="mr-2"
-							/>
-							<span class="text-sm text-gray-700">PayPal</span>
-						</label>
-					</div>
-				</div>
-
-				<!-- Card Number -->
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
-						{{ 'payment.card_number' | translate }}
-					</label>
-					<input
-						type="text"
-						[(ngModel)]="formData.numeroTarjeta"
-						name="cardNumber"
-						placeholder="1234 5678 9012 3456"
-						class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-						[disabled]="isSubmitting()"
-					/>
-				</div>
-
-				<!-- Card Holder -->
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
-						{{ 'payment.card_holder' | translate }}
-					</label>
-					<input
-						type="text"
-						[(ngModel)]="formData.nombreTitular"
-						name="cardHolder"
-						placeholder="NOMBRE APELLIDO"
-						class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none uppercase"
-						[disabled]="isSubmitting()"
-					/>
-				</div>
-
-				<!-- Expiry -->
-				<div>
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
-							{{ 'payment.expiry' | translate }}
-						</label>
-						<input
-							type="text"
-							[(ngModel)]="formData.fechaExpiracion"
-							name="expiry"
-							placeholder="MM/AA"
-							maxlength="5"
-							class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-							[disabled]="isSubmitting()"
-						/>
-					</div>
-				</div>
-
-					<!-- CVV -->
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
-							CVV
-						</label>
-						<input
-							type="password"
-							[(ngModel)]="formData.cvv"
-							name="cvv"
-							placeholder="123"
-							maxlength="4"
-							class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-							[disabled]="isSubmitting()"
-						/>
-					</div>
-
-				<!-- Info -->
-				<div class="mt-4 p-3 rounded-lg bg-blue-50 border border-blue-200">
-					<p class="text-xs text-blue-700">
-						💡 {{ 'payment.card_saved' | translate }}
-					</p>
-				</div>
-
-				<!-- Buttons -->
-				<div class="flex gap-3 mt-6 pt-4 border-t border-gray-200">
-					<button
-						type="button"
-						(click)="close()"
-						class="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 disabled:opacity-60"
-						[disabled]="isSubmitting()"
-					>
-						{{ 'nav.cancel' | translate }}
-					</button>
-					<button
-						type="submit"
-						class="flex-1 px-4 py-3 rounded-lg bg-amber-500 text-white font-medium hover:bg-amber-600 disabled:opacity-60"
-						[disabled]="isSubmitting()"
-					>
-						@if (isSubmitting()) {
-							Procesando...
-						} @else {
-							@if (editingPaymentId()) {
-								Guardar cambios
-							} @else {
-								{{ 'payment.add_card' | translate }}
-							}
-						}
-					</button>
-				</div>
-			</form>
 		</div>
 	</div>
 }

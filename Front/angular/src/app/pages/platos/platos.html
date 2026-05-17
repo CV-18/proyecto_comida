@@ -46,7 +46,7 @@
 					<div class="flex items-start justify-between gap-2 mb-2">
 						<h2 class="font-bold text-gray-900">{{ plato.name }}</h2>
 						<span class="text-xs px-2 py-1 rounded-full"
-							[class]="plato.isPremium ? 'text-amber-700 bg-amber-100' : 'text-gray-600 bg-gray-100'">{{ ('common.countries.' + plato.country.toLowerCase()) | translate }}</span>
+							[class]="plato.isPremium ? 'text-amber-700 bg-amber-100' : 'text-gray-600 bg-gray-100'">{{ plato.country.toLowerCase().replace('ñ','n') === 'espanol' ? 'español' : (('common.countries.' + plato.country.toLowerCase()) | translate) }}</span>
 					</div>
 					<p class="text-sm text-gray-500 mb-4">{{ plato.description }}</p>
 					<div class="flex items-center justify-between border-t border-gray-100 pt-4">

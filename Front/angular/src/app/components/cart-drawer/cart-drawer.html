@@ -15,8 +15,12 @@
 
 				@for (item of cart.items(); track item.id) {
 						<article class="flex items-center gap-3 bg-white rounded-2xl p-3 shadow-sm">
-							<div class="w-16 h-16 rounded-md bg-gray-100 flex items-center justify-center text-sm text-gray-500 font-semibold">
-								{{ item.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) }}
+							<div class="w-16 h-16 overflow-hidden rounded-md bg-gray-100 flex items-center justify-center text-sm text-gray-500 font-semibold">
+								@if (item.image) {
+									<img [src]="item.image" [alt]="item.name" class="h-full w-full object-cover" />
+								} @else {
+									{{ item.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) }}
+								}
 							</div>
 							<div class="flex-1">
 								<h3 class="text-sm font-medium text-gray-900">{{ item.name }}</h3>
@@ -109,7 +113,7 @@
 					(click)="checkout()">
 					{{ isProcessing() ? 'Procesando...' : ('cart.checkout' | translate) }}
 				</button>
-					<button type="button" class="w-full mt-2 px-4 py-2 rounded-full border border-gray-200 text-sm text-gray-700">{{ 'cart.continue' | translate }}</button>
+					<button type="button" class="w-full mt-2 px-4 py-2 rounded-full border border-gray-200 text-sm text-gray-700" (click)="continueShopping()">{{ 'cart.continue' | translate }}</button>
 				</div>
 			</div>
 		</aside>

@@ -1,9 +1,16 @@
 import { Injectable, signal } from '@angular/core';
-import { Observable, tap, throwError } from 'rxjs';
+import { Observable, catchError, map, of, tap, throwError } from 'rxjs';
 import { MetodoPagoCreateRequest, MetodoPagoUpdateRequest, PaymentMethod } from '../models/payment.model';
 import { AuthService } from './auth.service';
 import { PaymentService } from './payment.service';
 import { UsuarioResponse, UsuarioService } from './usuario.service';
+import { BackendOrderResponse, OrderBackendService } from './order-backend.service';
+
+export interface OrderItem {
+  dishId?: string;
+  name: string;
+  quantity: number;
+}
 
 export interface Order {
   id: string;
@@ -11,7 +18,7 @@ export interface Order {
   total: number;
   username: string;
   status: 'Entregado' | 'En camino' | 'Cancelado' | 'Pendiente';
-  items: string[];
+  items: OrderItem[];
   itemCount: number;
 }
 
@@ -36,7 +43,10 @@ const mockOrders: Order[] = [
     total: 38.47,
     username: 'jose_doe',
     status: 'Entregado',
-    items: ['Paella de Mariscos', 'Spaghetti Carbonara'],
+    items: [
+      { name: 'Paella de Mariscos', quantity: 1 },
+      { name: 'Spaghetti Carbonara', quantity: 1 },
+    ],
     itemCount: 2,
   },
   {
@@ -45,7 +55,10 @@ const mockOrders: Order[] = [
     total: 22.99,
     username: 'jose_doe',
     status: 'Entregado',
-    items: ['Tacos al Pastor', 'Tarta de Chocolate Belga'],
+    items: [
+      { name: 'Tacos al Pastor', quantity: 2 },
+      { name: 'Tarta de Chocolate Belga', quantity: 1 },
+    ],
     itemCount: 3,
   },
 ];
@@ -68,7 +81,8 @@ export class UserService {
   constructor(
     private readonly paymentService: PaymentService,
     private readonly usuarioService: UsuarioService,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
+    private readonly orderBackendService: OrderBackendService
   ) {}
 
   isAdminUser(): boolean {
@@ -366,7 +380,7 @@ export class UserService {
     return true;
   }
 
-  createOrder(items: { name: string; quantity: number }[], total: number): Order {
+  createOrder(items: OrderItem[], total: number): Order {
     const username = this.user()?.username?.trim() || 'guest';
 
     const newOrder: Order = {
@@ -375,12 +389,86 @@ export class UserService {
       total: total,
       username,
       status: 'Pendiente',
-      items: items.map((item) => `${item.name} x${item.quantity}`),
+      items,
       itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
     };
 
     this.orders.update((prev) => [newOrder, ...prev]);
     return newOrder;
+  }
+
+  createAndStoreOrder(
+    items: OrderItem[],
+    total: number,
+    paymentMethodId: number,
+    pricing?: { subtotal?: number; discount?: number; shipping?: number }
+  ): Observable<Order> {
+    return this.orderBackendService.create({
+      items,
+      total,
+      paymentMethodId,
+      subtotal: pricing?.subtotal,
+      discount: pricing?.discount,
+      shipping: pricing?.shipping,
+    }).pipe(
+      map((backendOrder) => this.mapBackendOrder(backendOrder, items, total)),
+      tap((order) => {
+        this.orders.update((prev) => [order, ...prev]);
+      }),
+      // Keep checkout functional while backend endpoint is being rolled out.
+      catchError(() => of(this.createOrder(items, total)))
+    );
+  }
+
+  private mapBackendOrder(
+    backendOrder: BackendOrderResponse,
+    fallbackItems: OrderItem[],
+    fallbackTotal: number
+  ): Order {
+    const username =
+      (backendOrder.username ?? backendOrder.usuario ?? this.user()?.username ?? 'guest')
+        .toString()
+        .trim() || 'guest';
+
+    const orderItems: OrderItem[] = Array.isArray(backendOrder.items) && backendOrder.items.length > 0
+      ? backendOrder.items.map((item) => {
+          const name = (item.name ?? item.nombre ?? 'Producto').toString();
+          const quantity = Number(item.quantity ?? item.cantidad ?? 1);
+          const dishIdRaw = item.dishId ?? item.platoId ?? item.idPlato ?? item.id;
+          return {
+            dishId: dishIdRaw !== undefined && dishIdRaw !== null ? String(dishIdRaw) : undefined,
+            name,
+            quantity: Number.isFinite(quantity) ? quantity : 1,
+          };
+        })
+      : fallbackItems;
+
+    const itemCountFromApi = Number(backendOrder.itemCount ?? backendOrder.cantidadItems);
+    const itemCount = Number.isFinite(itemCountFromApi) && itemCountFromApi > 0
+      ? itemCountFromApi
+      : fallbackItems.reduce((sum, item) => sum + item.quantity, 0);
+
+    const date = (backendOrder.date ?? backendOrder.fecha ?? new Date().toISOString()).toString();
+    const total = Number(backendOrder.total);
+    const statusRaw = (backendOrder.status ?? backendOrder.estado ?? 'Pendiente').toString();
+
+    return {
+      id: (backendOrder.id ?? backendOrder.codigo ?? `ORD-${String(Date.now()).slice(-6)}`).toString(),
+      date: date.includes('T') ? date.split('T')[0] : date,
+      total: Number.isFinite(total) ? total : fallbackTotal,
+      username,
+      status: this.normalizeOrderStatus(statusRaw),
+      items: orderItems,
+      itemCount,
+    };
+  }
+
+  private normalizeOrderStatus(status: string): Order['status'] {
+    const normalized = status.trim().toLowerCase();
+    if (normalized === 'entregado') return 'Entregado';
+    if (normalized === 'en camino') return 'En camino';
+    if (normalized === 'cancelado') return 'Cancelado';
+    return 'Pendiente';
   }
 
   hasPaymentMethod(): boolean {
