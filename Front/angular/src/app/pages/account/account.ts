@@ -52,6 +52,29 @@ export class Account implements OnInit {
       return;
     }
 
+    if (this.userService.isNewUser) {
+      const user = this.userService.user();
+      if (user) {
+        this.usuario = {
+          username: user.username,
+          nombre: user.name.split(' ')[0] ?? '',
+          apellidos: user.name.split(' ').slice(1).join(' '),
+          email: user.email,
+          telefono: user.phone,
+          direccion: user.address,
+          codigoPostal: user.codigoPostal,
+          ciudad: user.ciudad,
+          pais: user.pais,
+          roles: [],
+          isSuscriptor: false,
+          suscripcionExpira: null,
+        };
+      }
+      this.activeTab = 'perfil';
+      this.isEditing = true;
+      return;
+    }
+
     this.usuarioService.getMe().subscribe({
       next: (usuario) => {
         this.usuario = usuario;

@@ -124,7 +124,13 @@ export class Auth implements OnInit {
     ).subscribe({
       next: (res) => {
         this.authService.saveToken(res.token);
-        this.userService.login();
+        this.userService.login(true);
+        this.userService.updateUser({
+          username: this.form.username,
+          name: `${this.form.firstName} ${this.form.lastName}`.trim(),
+          email: this.form.email,
+          phone: this.form.phone,
+        });
         void this.router.navigateByUrl('/cuenta');
       },
       error: (error: unknown) => {

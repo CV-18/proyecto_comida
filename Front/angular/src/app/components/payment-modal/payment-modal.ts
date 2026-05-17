@@ -36,12 +36,6 @@ export class PaymentModal {
       subtitle: 'Cargo directo',
       accent: 'from-emerald-400 to-teal-500',
     },
-    {
-      value: 'PAYPAL',
-      title: 'PayPal',
-      subtitle: 'Cuenta online',
-      accent: 'from-sky-400 to-blue-500',
-    },
   ];
 
   formData = {
@@ -72,8 +66,6 @@ export class PaymentModal {
     switch (this.formData.tipo) {
       case 'TARJETA_DEBITO':
         return 'Débito';
-      case 'PAYPAL':
-        return 'PayPal';
       default:
         return 'Crédito';
     }
@@ -133,9 +125,6 @@ export class PaymentModal {
 
   setPaymentType(tipo: TipoMetodoPago): void {
     this.formData.tipo = tipo;
-    if (tipo === 'PAYPAL') {
-      this.formData.numeroTarjeta = this.formData.numeroTarjeta.replace(/\s/g, '');
-    }
   }
 
   onCardNumberInput(event: Event): void {

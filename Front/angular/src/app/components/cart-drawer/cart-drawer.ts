@@ -55,7 +55,7 @@ export class CartDrawer {
     this.errorMessage.set(null);
 
     // Validar que el usuario tenga una dirección de envío (solo si está logeado)
-    if (this.userService.isLoggedIn() && !this.userService.hasAddress()) {
+    if (this.userService.isLoggedIn() && !this.userService.hasShippingAddress()) {
       this.addressModal.open();
       return;
     }

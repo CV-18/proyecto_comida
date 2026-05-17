@@ -41,33 +41,6 @@ interface StoredAccount extends UserProfile {
   password: string;
 }
 
-const mockOrders: Order[] = [
-  {
-    id: 'ORD-001234',
-    date: '2026-04-28',
-    total: 38.47,
-    username: 'jose_doe',
-    status: 'Entregado',
-    items: [
-      { name: 'Paella de Mariscos', quantity: 1 },
-      { name: 'Spaghetti Carbonara', quantity: 1 },
-    ],
-    itemCount: 2,
-  },
-  {
-    id: 'ORD-001198',
-    date: '2026-04-15',
-    total: 22.99,
-    username: 'jose_doe',
-    status: 'Entregado',
-    items: [
-      { name: 'Tacos al Pastor', quantity: 2 },
-      { name: 'Tarta de Chocolate Belga', quantity: 1 },
-    ],
-    itemCount: 3,
-  },
-];
-
 // Start with no saved payment methods; users can add them via UI
 
 @Injectable({ providedIn: 'root' })
@@ -77,13 +50,14 @@ export class UserService {
   readonly premiumExpira = signal<string | null>(null);
   readonly roles = signal<string[]>([]);
   readonly paymentMethods = signal<PaymentMethod[]>([]);
-  readonly orders = signal<Order[]>(mockOrders);
+  readonly orders = signal<Order[]>([]);
   readonly defaultPaymentId = signal<number | null>(null);
   readonly user = signal<UserProfile | null>(null);
   readonly accounts = signal<StoredAccount[]>([]);
   readonly guestBalance = signal(100);
   readonly addresses = signal<Address[]>([]);
   readonly defaultAddressId = signal<number | null>(null);
+  isNewUser = false;
 
   constructor(
     private readonly paymentService: PaymentService,
@@ -102,8 +76,16 @@ export class UserService {
     return !this.isAdminUser();
   }
 
-  login(): void {
+  login(isNewUser = false): void {
     this.isLoggedIn.set(true);
+    this.isNewUser = isNewUser;
+
+    if (this.isNewUser) {
+      this.fetchPaymentMethods();
+      this.fetchAddresses();
+      return;
+    }
+
     // Sync Premium status from server and load payment methods + addresses
     this.refreshUserState().subscribe({
       next: () => {
