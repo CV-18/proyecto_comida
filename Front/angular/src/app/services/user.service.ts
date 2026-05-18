@@ -442,7 +442,10 @@ export class UserService {
         return addItems$.pipe(map(() => carritoId));
       }),
       switchMap((carritoId) => {
-        return this.orderBackendService.create({ carritoId });
+        return this.orderBackendService.create({
+          carritoId,
+          metodoPagoId: paymentMethodId,
+        });
       }),
       switchMap((backendOrder) => {
         const orderId = backendOrder.id ?? backendOrder.codigo;

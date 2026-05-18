@@ -11,6 +11,7 @@ export interface CreateOrderItemRequest {
 
 export interface CreateOrderRequest {
   carritoId: number;
+  metodoPagoId: number;
 }
 
 export interface GuestCheckoutRequestDto {
