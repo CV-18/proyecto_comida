@@ -8,7 +8,15 @@ import { TranslateService } from '../../services/translate.service';
 import { CatalogService } from '../../services/catalog.service';
 import type { PlatoResponse } from '../../services/catalog-admin.service';
 
-type PlatosViewItem = CartItem & { country: string; isPremium: boolean; description: string; rating: number };
+type PlatoVariant = PlatoResponse['variante'];
+
+type PlatosViewItem = CartItem & {
+  country: string;
+  variant: PlatoVariant;
+  isPremium: boolean;
+  description: string;
+  rating: number;
+};
 
 @Component({
   selector: 'app-platos',
@@ -17,6 +25,7 @@ type PlatosViewItem = CartItem & { country: string; isPremium: boolean; descript
 })
 export class Platos {
   activeFilter = 'Todos';
+  activeVariantFilter: PlatoVariant | 'TODAS' = 'TODAS';
   search = '';
   readonly pageSize = 10;
   currentPage = 1;
@@ -29,8 +38,16 @@ export class Platos {
     { value: 'Italiano', label: 'Italiano' },
     { value: 'Japones',  label: 'Japonés'  },
     { value: 'Espanol',  label: 'Español'  },
-    { value: 'Premium',  label: 'Premium'  },
   ];
+
+  readonly variantFilters = [
+    { value: 'TODAS', label: 'Todas' },
+    { value: 'ESTANDAR', label: 'Estándar' },
+    { value: 'SIN_GLUTEN', label: 'Sin gluten' },
+    { value: 'VEGANO', label: 'Vegano' },
+    { value: 'PICANTE', label: 'Picante' },
+    { value: 'BAJO_CARBOHIDRATO', label: 'Bajo carbohidrato' },
+  ] as const;
 
   platos: PlatosViewItem[] = [];
 
@@ -75,6 +92,7 @@ export class Platos {
       id: String(plato.id),
       name: plato.nombre,
       country: this.mapCountry(plato.pais),
+      variant: plato.variante ?? 'ESTANDAR',
       price: plato.precio,
       quantity: 1,
       image: '',
@@ -112,11 +130,13 @@ export class Platos {
       const matchesFilter =
         this.activeFilter === 'Todos'
           ? true
-          : this.activeFilter === 'Premium'
-            ? Boolean(plate.isPremium)
-            : this.normalizeCountry(plate.country) === normalizedActive;
+          : this.normalizeCountry(plate.country) === normalizedActive;
+      const matchesVariant =
+        this.activeVariantFilter === 'TODAS'
+          ? true
+          : plate.variant === this.activeVariantFilter;
       const matchesSearch = plate.name?.toLowerCase().includes(this.search.toLowerCase());
-      return matchesFilter && matchesSearch;
+      return matchesFilter && matchesVariant && matchesSearch;
     });
   }
 
@@ -139,6 +159,11 @@ export class Platos {
 
   setFilter(filter: { value: string; label: string }): void {
     this.activeFilter = filter.value;
+    this.currentPage = 1;
+  }
+
+  setVariantFilter(filter: { value: PlatoVariant | 'TODAS'; label: string }): void {
+    this.activeVariantFilter = filter.value;
     this.currentPage = 1;
   }
 
