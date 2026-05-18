@@ -137,13 +137,7 @@ export class Subscription implements OnInit {
 		this.processing.set(true);
 		this.userService.subscribePremium(chosenPayment.id).subscribe({
 			next: () => {
-				if (chosenPayment.saldoDisponible !== undefined) {
-					this.userService.updateLocalPaymentBalance(
-						chosenPayment.id,
-						Math.max(0, chosenPayment.saldoDisponible - this.subscriptionPrice)
-					);
-				}
-
+				// Saldo es actualizado por el backend, solo sincronizar
 				this.userService.fetchPaymentMethods();
 				this.showConfirmation.set(false);
 				this.processing.set(false);

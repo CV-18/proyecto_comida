@@ -170,10 +170,6 @@ export class UserService {
       map((payload) => this.extractBackendOrders(payload)),
       map((orders) => orders.map((backendOrder) => {
         const order = this.mapBackendOrder(backendOrder, [], 0);
-        // Pedidos completados o en proceso se muestran siempre como Completado
-        if (order.status === 'En proceso' || order.status === 'Pendiente') {
-          return { ...order, status: 'Completado' as Order['status'] };
-        }
         return order;
       }))
     ).subscribe({
@@ -241,7 +237,7 @@ export class UserService {
             return {
               ...paymentMethod,
               ...updated,
-              saldoDisponible: paymentMethod.saldoDisponible ?? updated.saldoDisponible ?? 100,
+              saldoDisponible: updated.saldoDisponible ?? paymentMethod.saldoDisponible ?? 100,
             };
           });
         });
@@ -262,7 +258,6 @@ export class UserService {
   removePaymentMethod(id: number): void {
     this.paymentService.remove(id).subscribe({
       next: () => this.updateLocalAfterRemove(id),
-      error: () => this.updateLocalAfterRemove(id),
     });
   }
 
