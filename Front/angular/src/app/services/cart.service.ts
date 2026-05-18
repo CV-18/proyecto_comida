@@ -8,6 +8,11 @@ export type CartItem = {
   quantity: number;
   image: string;
   isPremium?: boolean;
+  components?: {
+    id: number;
+    name: string;
+    quantity: number;
+  }[];
 };
 
 export const PREMIUM_DISCOUNT = 0.15;

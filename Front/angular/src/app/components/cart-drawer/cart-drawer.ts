@@ -1,7 +1,7 @@
 import { Component, ViewChild, signal } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { TranslatePipe } from '../../pipes/translate.pipe';
-import { CartService } from '../../services/cart.service';
+import { CartService, type CartItem } from '../../services/cart.service';
 import { UserService } from '../../services/user.service';
 import { OrderService } from '../../services/order.service';
 import { TranslateService } from '../../services/translate.service';
@@ -10,7 +10,7 @@ import { AddressModalComponent } from '../address-modal/address-modal.component'
 import { finalize, switchMap } from 'rxjs';
 import { Router } from '@angular/router';
 import { UsuarioResponse, UsuarioService } from '../../services/usuario.service';
-import { OrderBackendService } from '../../services/order-backend.service';
+import { OrderBackendService, type CreateOrderItemRequest } from '../../services/order-backend.service';
 
 @Component({
   selector: 'app-cart-drawer',
@@ -97,11 +97,7 @@ export class CartDrawer {
 
     this.isProcessing.set(true);
 
-    const orderItems = this.cart.items().map((item) => ({
-      platoId: Number(item.id),
-      name: item.name,
-      quantity: item.quantity,
-    }));
+    const orderItems = this.buildOrderItems();
 
     const createOrder$ = this.userService.createAndStoreOrder(
       orderItems,
@@ -156,5 +152,48 @@ export class CartDrawer {
         this.userService.fetchPaymentMethods();
       }
     });
+  }
+
+  private buildOrderItems(): CreateOrderItemRequest[] {
+    const groupedItems = new Map<number, CreateOrderItemRequest>();
+
+    const addOrAccumulate = (platoId: number, name: string, quantity: number): void => {
+      if (!Number.isFinite(platoId) || quantity <= 0) {
+        return;
+      }
+
+      const current = groupedItems.get(platoId);
+      if (current) {
+        current.quantity += quantity;
+        if (!current.name && name) {
+          current.name = name;
+        }
+        return;
+      }
+
+      groupedItems.set(platoId, { platoId, name, quantity });
+    };
+
+    this.cart.items().forEach((item: CartItem) => {
+      if (Array.isArray(item.components) && item.components.length > 0) {
+        item.components.forEach((component: NonNullable<CartItem['components']>[number]) => {
+          addOrAccumulate(
+            Number(component.id),
+            component.name,
+            component.quantity * item.quantity
+          );
+        });
+        return;
+      }
+
+      const platoId = Number(item.id);
+      if (!Number.isFinite(platoId)) {
+        return;
+      }
+
+      addOrAccumulate(platoId, item.name, item.quantity);
+    });
+
+    return [...groupedItems.values()];
   }
 }

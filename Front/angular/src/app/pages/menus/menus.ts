@@ -143,8 +143,8 @@ export class Menus implements OnInit {
   private loadDishes(): void {
     this.isLoading = true;
     this.catalogService.listPlatos().subscribe({
-      next: (platos) => {
-        this.dishes = platos.map((plato) => this.toMenuDish(plato));
+      next: (platos: PlatoResponse[]) => {
+        this.dishes = platos.map((plato: PlatoResponse) => this.toMenuDish(plato));
         this.isLoading = false;
         this.cdr.detectChanges();
       },
@@ -265,6 +265,11 @@ export class Menus implements OnInit {
       quantity: 1,
       image: this.getMenuImage(),
       isPremium: this.selectedDishes.some((dish) => dish.isPremium),
+      components: [
+        { id: Number(entrada.id), name: entrada.name, quantity: 1 },
+        { id: Number(principal.id), name: principal.name, quantity: 1 },
+        { id: Number(postre.id), name: postre.name, quantity: 1 },
+      ],
     };
 
     this.cart.addItem(menuItem);
@@ -290,14 +295,5 @@ export class Menus implements OnInit {
       return SPANISH_PAELLA_IMAGE;
     }
     return menuImagesByCountry[this.activeCategory as Exclude<MenuScope, 'Todos'>];
-  }
-
-  private hashSeed(value: string): number {
-    let hash = 0;
-    for (let index = 0; index < value.length; index += 1) {
-      hash = (hash << 5) - hash + value.charCodeAt(index);
-      hash |= 0;
-    }
-    return hash;
   }
 }
